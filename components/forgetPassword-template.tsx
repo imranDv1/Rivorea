@@ -12,29 +12,29 @@ import {
   Tailwind,
 } from "@react-email/components";
 
-interface VerifyProps {
+interface Props {
   username: string;
-  verifyUrl: string;
+  to: string;
+  resetUrl: string;
 }
 
-const EmailVerification = (props: VerifyProps) => {
-  const { username, verifyUrl } = props;
+const ForgotPasswordEmail = (props: Props) => {
+  const { to, resetUrl, username } = props;
+
   return (
     <Html lang="en" dir="ltr">
       <Tailwind>
         <Head />
-        <Preview>
-          Verify your email address to complete your Rivorea account setup
-        </Preview>
+        <Preview>Reset your Rivorea password - Action required</Preview>
         <Body className="bg-gray-50 font-sans">
           <Container className="bg-white rounded-lg shadow-sm max-w-[600px] mx-auto my-[40px] p-[40px]">
             {/* Header */}
             <Section className="text-center mb-[40px]">
               <Text className="text-[28px] font-bold text-gray-900 m-0 mb-[12px]">
-                Welcome to Rivorea
+                Reset Your Password
               </Text>
               <Text className="text-[16px] text-gray-600 m-0">
-                Verify your email address to get started
+                We received a request to reset your password
               </Text>
             </Section>
 
@@ -44,23 +44,23 @@ const EmailVerification = (props: VerifyProps) => {
                 Hello {username},
               </Text>
               <Text className="text-[16px] text-gray-700 leading-[24px] mb-[16px]">
-                Thank you for signing up for Rivorea! We&apos;re thrilled to
-                have you join our community.
+                We received a request to reset the password for your Rivorea
+                account associated with{" "}
+                <strong className="text-gray-900">{to}</strong>.
               </Text>
               <Text className="text-[16px] text-gray-700 leading-[24px] mb-[24px]">
-                To complete your registration and secure your account, please
-                verify your email address by clicking the button below. This
-                link will expire in 24 hours.
+                Click the button below to create a new password. This link will
+                expire in 24 hours for security reasons.
               </Text>
             </Section>
 
-            {/* Verify Button */}
+            {/* Reset Button */}
             <Section className="text-center mb-[32px]">
               <Button
-                href={verifyUrl}
+                href={resetUrl}
                 className="bg-[#2563eb] text-white px-[40px] py-[14px] rounded-lg text-[16px] font-semibold no-underline inline-block"
               >
-                Verify Email Address
+                Reset My Password
               </Button>
             </Section>
 
@@ -71,7 +71,7 @@ const EmailVerification = (props: VerifyProps) => {
                 your browser:
               </Text>
               <Text className="text-[13px] text-[#2563eb] break-all font-mono m-0">
-                {verifyUrl}
+                {resetUrl}
               </Text>
             </Section>
 
@@ -82,9 +82,12 @@ const EmailVerification = (props: VerifyProps) => {
               <Text className="text-[14px] text-gray-600 leading-[20px] mb-[12px] font-semibold m-0">
                 Security Notice
               </Text>
+              <Text className="text-[14px] text-gray-600 leading-[20px] mb-[8px] m-0">
+                • If you didn&apos;t request this password reset, please ignore
+                this email. Your password will remain unchanged.
+              </Text>
               <Text className="text-[14px] text-gray-600 leading-[20px] m-0">
-                If you didn&apos;t create an account with Rivorea, please ignore
-                this email. Your email address will not be added to our system.
+                • This reset link will expire in 24 hours for your security.
               </Text>
             </Section>
 
@@ -110,4 +113,4 @@ const EmailVerification = (props: VerifyProps) => {
   );
 };
 
-export default EmailVerification;
+export default ForgotPasswordEmail;
