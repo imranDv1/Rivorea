@@ -58,12 +58,7 @@ export function AuthPage() {
           <div className="absolute top-0 right-0 h-320 w-60 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,--theme(--color-foreground/.04)_0,--theme(--color-foreground/.01)_80%,transparent_100%)] [translate:5%_-50%]" />
           <div className="-translate-y-87.5 absolute top-0 right-0 h-320 w-60 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,--theme(--color-foreground/.04)_0,--theme(--color-foreground/.01)_80%,transparent_100%)]" />
         </div>
-        <Button asChild className="absolute top-7 left-5" variant="ghost">
-          <Link href="/">
-            <ChevronLeftIcon />
-            Home
-          </Link>
-        </Button>
+    
         <div className="mx-auto space-y-4 sm:w-sm">
           <div className="flex items-center">
             <Image

@@ -142,13 +142,7 @@ export function SignUpPage() {
           <div className="absolute top-0 right-0 h-320 w-60 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,--theme(--color-foreground/.04)_0,--theme(--color-foreground/.01)_80%,transparent_100%)] [translate:5%_-50%]" />
           <div className="-translate-y-87.5 absolute top-0 right-0 h-320 w-60 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,--theme(--color-foreground/.04)_0,--theme(--color-foreground/.01)_80%,transparent_100%)]" />
         </div>
-        <Button asChild className="absolute top-7 left-5" variant="ghost">
-          <Link href="/">
-            <ChevronLeftIcon />
-            Home
-          </Link>
-      
-        </Button>
+
 
         <Button asChild className="absolute top-7 left-25" variant="ghost">
           <Link href="/login">
@@ -166,6 +160,36 @@ export function SignUpPage() {
             <p className="text-base text-muted-foreground">
               login or create your rivorea account.
             </p>
+          </div>
+
+       
+
+          <div className="space-y-2">
+            <Button
+              disabled={googlePending}
+              onClick={SignInWithGoogle}
+              className="w-full"
+              size="lg"
+              type="button"
+            >
+              {googlePending ? (
+                <>
+                  <Spinner />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <GoogleIcon />
+                  Continue with Google
+                </>
+              )}
+            </Button>
+          </div>
+
+          <div className="flex w-full items-center justify-center">
+            <div className="h-px w-full bg-border" />
+            <span className="px-2 text-muted-foreground text-xs">OR</span>
+            <div className="h-px w-full bg-border" />
           </div>
 
           <Form {...form}>
@@ -276,33 +300,7 @@ export function SignUpPage() {
             </form>
           </Form>
 
-          <div className="flex w-full items-center justify-center">
-            <div className="h-px w-full bg-border" />
-            <span className="px-2 text-muted-foreground text-xs">OR</span>
-            <div className="h-px w-full bg-border" />
-          </div>
-
-          <div className="space-y-2">
-            <Button
-              disabled={googlePending}
-              onClick={SignInWithGoogle}
-              className="w-full"
-              size="lg"
-              type="button"
-            >
-              {googlePending ? (
-                <>
-                  <Spinner />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <GoogleIcon />
-                  Continue with Google
-                </>
-              )}
-            </Button>
-          </div>
+      
           <p className="mt-8 text-muted-foreground text-sm">
             By clicking continue, you agree to our{" "}
             <a
