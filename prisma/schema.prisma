@@ -14,17 +14,21 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-
-  username        String? @unique
+  id              String    @id @default(cuid())
+  name            String
+  email           String
+  emailVerified   Boolean   @default(false)
+  image           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  sessions        Session[]
+  accounts        Account[]
+  bio             String?
+  followers       User[]    @relation("UserFollowers")
+  following       User[]    @relation("UserFollowers")
+  bannerImage     String?
+  badge           String?   @default("none")
+  username        String?   @unique
   displayUsername String?
 
   @@unique([email])
