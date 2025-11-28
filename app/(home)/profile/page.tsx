@@ -133,7 +133,7 @@ const ProfilePage = () => {
                       poster="/post2.jpg"
                       className="w-full max-h-96 rounded-lg object-cover bg-black"
                     >
-                      <source src="/(2) imran - YouTube - Personal - Microsoft​ Edge 2025-11-13 16-03-25.mp4" type="video/mp4" />
+                      <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4" />
                       Your browser does not support the video tag.
                     </video>
                   </div>
