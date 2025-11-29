@@ -492,7 +492,7 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="w-full lg:w-[60%] h-screen ">
+    <div className="w-full  h-screen ">
       <Card className="h-screen overflow-y-scroll bg-[#111] scrollbar-hide">
         <CardHeader className="relative">
           {/* Banner */}
@@ -1182,16 +1182,22 @@ const ProfilePage = () => {
               <Label htmlFor="bio" className="text-white">
                 Bio
               </Label>
-              <Textarea
-                id="bio"
-                value={formData.bio}
-                onChange={(e) =>
-                  setFormData({ ...formData, bio: e.target.value })
-                }
-                className="bg-[#222] border-[#333] text-white min-h-24"
-                placeholder="Tell us about yourself"
-                rows={4}
-              />
+              <div className="relative">
+                <Textarea
+                  id="bio"
+                  value={formData.bio}
+                  maxLength={160}
+                  onChange={(e) =>
+                    setFormData({ ...formData, bio: e.target.value })
+                  }
+                  className="bg-[#222] border-[#333] text-white min-h-24"
+                  placeholder="Tell us about yourself"
+                  rows={4}
+                />
+                <span className="absolute right-2 bottom-2 text-xs text-muted-foreground">
+                  {formData.bio.length}/160
+                </span>
+              </div>
             </div>
           </div>
 

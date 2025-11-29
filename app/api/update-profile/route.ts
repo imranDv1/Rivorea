@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 
@@ -14,9 +15,28 @@ export async function POST(req: NextRequest) {
       bannerImage,
     } = body;
 
+    // Validation
     if (!userId) {
       return NextResponse.json(
         { message: "userId is required" },
+        { status: 400 }
+      );
+    }
+    if (typeof name === "string" && name.length > 10) {
+      return NextResponse.json(
+        { message: "Name must be at most 10 characters" },
+        { status: 400 }
+      );
+    }
+    if (typeof username === "string" && username.length > 10) {
+      return NextResponse.json(
+        { message: "Username must be at most 10 characters" },
+        { status: 400 }
+      );
+    }
+    if (typeof bio === "string" && bio.length > 160) {
+      return NextResponse.json(
+        { message: "Bio must be at most 160 characters" },
         { status: 400 }
       );
     }
@@ -74,7 +94,7 @@ export async function POST(req: NextRequest) {
     );
   } catch (error: any) {
     console.error("Error updating profile:", error);
-    
+
     // Handle unique constraint violation (username already exists)
     if (error.code === "P2002") {
       return NextResponse.json(
