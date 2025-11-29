@@ -493,7 +493,7 @@ const ProfilePage = () => {
 
   return (
     <div className="w-full  h-screen ">
-      <Card className="h-screen overflow-y-scroll bg-[#111] scrollbar-hide">
+      <Card className="h-screen overflow-y-scroll  scrollbar-hide">
         <CardHeader className="relative">
           {/* Banner */}
           {loading ? (
@@ -552,7 +552,7 @@ const ProfilePage = () => {
           {/* Edit Profile Button */}
           <Button
             variant="outline"
-            className="absolute right-8 -bottom-9 rounded-4xl"
+            className="absolute right-8 -bottom-10 rounded-4xl ring-1 ring-[#333]"
             disabled={loading}
             onClick={() => setIsEditDialogOpen(true)}
           >
@@ -957,9 +957,9 @@ const ProfilePage = () => {
 
       {/* Edit Profile Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#111] border-[#333] scrollbar-hide">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto  border-[#333] scrollbar-hide">
           <DialogHeader>
-            <DialogTitle className="text-white">Edit Profile</DialogTitle>
+            <DialogTitle className="text-white ">Edit Profile</DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Update your profile information and images
             </DialogDescription>

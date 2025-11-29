@@ -171,7 +171,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
     <div className="w-full h-full lg:p-4 flex lg:gap-4 relative">
       {/* Sidebar for desktop */}
       <div className="hidden lg:flex flex-col">
-        <Card className="w-max h-max bg-[#111]">
+        <Card className="w-max h-max ">
           <CardContent className="flex flex-col gap-6">
             {sections.map((item) => (
               <div
@@ -194,9 +194,9 @@ const Layout = ({ children }: { children: ReactNode }) => {
           <DropdownMenu>
             <DropdownMenuTrigger>
               <Card className="w-[200px] mt-4 bg-transparent border-0  flex items-center ">
-                <CardContent className="flex items-center justify-between gap-9">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
+                <CardContent className="flex items-center justify-between gap-6 sm:gap-9 flex-wrap sm:flex-nowrap">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <Avatar className="w-10 h-10 sm:w-12 sm:h-12 shrink-0">
                       <AvatarImage
                         src={(user?.image as string) || ""}
                         alt="Profile image"
@@ -206,15 +206,20 @@ const Layout = ({ children }: { children: ReactNode }) => {
                         {(user?.name?.[0] || "U").toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col ">
-                      <h1>{user?.name ? user.name.split(" ")[0] : "User"}</h1>
-                      <h1 className="text-sm text-muted-foreground">
+                    <div className="flex flex-col min-w-0 items-start">
+                      <h1 className="truncate text-base sm:text-lg font-medium">{user?.name ? user.name.split(" ")[0] : "User"}</h1>
+                      <h1 className="text-xs sm:text-sm text-muted-foreground truncate">
                         @{user?.username ?? "unknown"}
                       </h1>
                     </div>
                   </div>
-
-                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                  <svg
+                    width="20"
+                    height="20"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    className="ml-auto flex-shrink-0"
+                  >
                     <circle cx="5" cy="12" r="2" fill="currentColor" />
                     <circle cx="12" cy="12" r="2" fill="currentColor" />
                     <circle cx="19" cy="12" r="2" fill="currentColor" />
@@ -301,21 +306,33 @@ const Layout = ({ children }: { children: ReactNode }) => {
         {/* Trending topics for desktop */}
         <Card className="mt-5 h-max">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold">Trending topics</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Trending topics
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <h1 className="text-sm text-muted-foreground">Somalia</h1>
-                  <span className="">
-                    Trending topic 1
-                  </span>
+              <div className="flex  flex-col gap-2">
+                <h1 className="text-sm text-muted-foreground">
+                  Trending in Somalia
+                </h1>
+                <span className="">Trending topic 1</span>
               </div>
-     
+              <div className="flex  flex-col gap-2">
+                <h1 className="text-sm text-muted-foreground">
+                  Trending in Somalia
+                </h1>
+                <span className="">Trending topic 1</span>
+              </div>
+              <div className="flex  flex-col gap-2">
+                <h1 className="text-sm text-muted-foreground">
+                  Trending in Somalia
+                </h1>
+                <span className="">Trending topic 1</span>
+              </div>
             </div>
           </CardContent>
-        </Card>  
-      
+        </Card>
       </div>
     </div>
   );
