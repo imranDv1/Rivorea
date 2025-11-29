@@ -18,17 +18,17 @@ model User {
   name            String
   email           String
   emailVerified   Boolean   @default(false)
-  image           String?
+  image           String?   @default("https://hcibiyuuxvbsxzywbccl.supabase.co/storage/v1/object/public/usersImage/download.jpg")
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   sessions        Session[]
   accounts        Account[]
-  bio             String?
+  bio             String?   @default("")
   followers       User[]    @relation("UserFollowers")
   following       User[]    @relation("UserFollowers")
-  bannerImage     String?
+  bannerImage     String?  @default("https://hcibiyuuxvbsxzywbccl.supabase.co/storage/v1/object/public/usersImage/download%20(1).jpg")
   badge           String?   @default("none")
-  username        String?   @unique
+  username        String?   @unique @default(dbgenerated("'user_' || floor(random() * 1000 + 1)::int"))
   displayUsername String?
 
   @@unique([email])

@@ -10,6 +10,7 @@ import {
   Bell,
   Bookmark,
   HomeIcon,
+  LogOut,
   Mail,
   Menu,
   Search,
@@ -27,6 +28,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { useUser } from "@/hooks/user";
 
 const sections = [
   {
@@ -105,8 +108,20 @@ const mobileNavBar = [
     href: "/messages",
   },
 ];
-const layout = ({ children }: { children: ReactNode }) => {
-  const { data: sessiom } = authClient.useSession();
+
+const Layout = ({ children }: { children: ReactNode }) => {
+  const { isPending, user } = useUser();
+
+  // Use isPending to handle loading state
+
+  if (!user) {
+    return null;
+  }
+
+  function handleLogout() {
+    authClient.signOut();
+    redirect("/login");
+  }
 
   return (
     <div className="w-full h-full lg:p-4 flex lg:gap-4 relative">
@@ -131,47 +146,51 @@ const layout = ({ children }: { children: ReactNode }) => {
           </CardFooter>
         </Card>
         {/* user info */}
-        <DropdownMenu>
-          <DropdownMenuTrigger>
-            <Card className="w-[200px] mt-4 bg-transparent border-0  flex items-center ">
-              <CardContent className="flex items-center justify-between gap-9">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage
-                      src={(sessiom?.user.image as string) || ""}
-                      alt="Profile image"
-                      className="object-cover"
-                    />
-                    <AvatarFallback>
-                      {(sessiom?.user.name?.[0] || "U").toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col ">
-                    <h1>{sessiom?.user.name}</h1>
-                    <h1 className="text-sm text-muted-foreground">
-                      @{sessiom?.user.username}
-                    </h1>
+        {isPending ? null : (
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Card className="w-[200px] mt-4 bg-transparent border-0  flex items-center ">
+                <CardContent className="flex items-center justify-between gap-9">
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage
+                        src={(user.image as string) || ""}
+                        alt="Profile image"
+                        className="object-cover"
+                      />
+                      <AvatarFallback>
+                        {(user.name?.[0] || "U").toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col ">
+                      <h1>{user.name?.split(" ")[0]}</h1>
+                      <h1 className="text-sm text-muted-foreground">
+                        @{user.username}
+                      </h1>
+                    </div>
                   </div>
-                </div>
 
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-                  <circle cx="5" cy="12" r="2" fill="currentColor" />
-                  <circle cx="12" cy="12" r="2" fill="currentColor" />
-                  <circle cx="19" cy="12" r="2" fill="currentColor" />
-                </svg>
-              </CardContent>
-            </Card>
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                    <circle cx="5" cy="12" r="2" fill="currentColor" />
+                    <circle cx="12" cy="12" r="2" fill="currentColor" />
+                    <circle cx="19" cy="12" r="2" fill="currentColor" />
+                  </svg>
+                </CardContent>
+              </Card>
 
-            <DropdownMenuContent>
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem>Billing</DropdownMenuItem>
-              <DropdownMenuItem>Team</DropdownMenuItem>
-              <DropdownMenuItem>Subscription</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenuTrigger>
-        </DropdownMenu>
+              <DropdownMenuContent>
+                <DropdownMenuLabel onClick={handleLogout}>
+                  Logout
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Profile</DropdownMenuItem>
+                <DropdownMenuItem>Billing</DropdownMenuItem>
+                <DropdownMenuItem>Team</DropdownMenuItem>
+                <DropdownMenuItem>Subscription</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenuTrigger>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Main content */}
@@ -187,12 +206,16 @@ const layout = ({ children }: { children: ReactNode }) => {
                 {/* Optionally display labels on mobile:
                 <span className="text-xs mt-1">{item.name}</span> */}
               </Link>
+          
             </div>
           ))}
+              <Button variant='ghost' size='icon-sm' onClick={handleLogout}>
+                <LogOut/>
+              </Button>
         </div>
       </div>
     </div>
   );
 };
 
-export default layout;
+export default Layout;
