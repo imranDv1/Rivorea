@@ -527,8 +527,8 @@ const ProfilePage = () => {
             )}
           </div>
 
-          {/* Name, username, badge */}
-          <div className="absolute -bottom-15 left-37 lg:left-40">
+          {/* Name, username, badge - hidden on mobile, show on lg+ */}
+          <div className="hidden lg:block absolute -bottom-15 left-37 lg:left-40">
             {loading ? (
               <div className="space-y-2 mt-2">
                 <Skeleton className="h-6 w-28 rounded" />
@@ -561,7 +561,31 @@ const ProfilePage = () => {
             Edit Profile
           </Button>
         </CardHeader>
-        <CardDescription className="mt-17 w-[90%] mx-auto">
+        <CardDescription className="mt-15 w-[90%] mx-auto">
+          {/* Name, username, badge - only show on mobile (block on <lg, hide on lg+) */}
+          <div className="block lg:hidden mb-2">
+            {loading ? (
+              <div className="space-y-2 mt-2">
+                <Skeleton className="h-6 w-28 rounded" />
+                <Skeleton className="h-5 w-20 rounded" />
+              </div>
+            ) : (
+              <>
+                <h1 className="text-[20px] flex items-center gap-2 font-semibold text-white">
+                  {userInfo?.name as string}
+                  {userInfo?.badge === "blue" ? (
+                    <HiCheckBadge className="text-blue-500" />
+                  ) : userInfo?.badge === "gold" ? (
+                    <HiCheckBadge className="text-yellow-400" />
+                  ) : null}
+                </h1>
+                <h1 className="text-[18px] text-muted-foreground">
+                  @{userInfo?.username || "imran"}
+                </h1>
+              </>
+            )}
+          </div>
+
           {/* Bio */}
           {loading ? (
             <div className="space-y-1">

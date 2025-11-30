@@ -189,7 +189,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
   if (!user) {
     console.log("user not found");
     // Optionally redirect to login or show a message if user is not found after loading
-   
+
     return null; // Return null to prevent rendering the rest of the layout
   }
 
@@ -323,8 +323,8 @@ const Layout = ({ children }: { children: ReactNode }) => {
                             const maxSize = isImage
                               ? MAX_IMAGE_SIZE
                               : isVideo
-                                ? MAX_VIDEO_SIZE
-                                : MAX_IMAGE_SIZE;
+                              ? MAX_VIDEO_SIZE
+                              : MAX_IMAGE_SIZE;
 
                             if (file.size > maxSize) {
                               const maxSizeMB = maxSize / (1024 * 1024);
@@ -419,8 +419,14 @@ const Layout = ({ children }: { children: ReactNode }) => {
                   </div>
                 </div>
                 <DialogFooter>
-                  <DialogClose>
-                    <Button variant="outline">Cancel</Button>
+                  {/* 
+                    FIX: Do not render a <button> inside <DialogClose>, which itself is a button. 
+                    Instead, use a normal element (like <span>) that triggers the close. 
+                  */}
+                  <DialogClose asChild>
+                    <span>
+                      <Button variant="outline" type="button">Cancel</Button>
+                    </span>
                   </DialogClose>
                   <Button
                     variant="default"
@@ -569,7 +575,9 @@ const Layout = ({ children }: { children: ReactNode }) => {
       </div>
 
       {/* Main content */}
-      <div className="lg:w-[50%] w-full h-full  lg:p-4">{children}</div>
+      <div className="lg:w-[50%] w-full h-full lg:p-4 pb-16 lg:pb-0">
+        {children}
+      </div>
       {/* Right sidebar */}
       <div className=" w-[30%] hidden lg:block h-full overflow-y-auto p-4">
         <InputGroup>
@@ -654,6 +662,22 @@ const Layout = ({ children }: { children: ReactNode }) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Mobile Navbar */}
+      <nav className="fixed bottom-0 left-0 z-50 w-full bg-background border-t border-muted lg:hidden">
+        <div className="flex justify-around items-center p-2">
+          {mobileNavBar.map((item) => (
+            <Link
+              href={item.href}
+              key={item.id}
+              className="flex flex-col items-center text-sm group"
+            >
+              <item.icon className="w-6 h-6 group-hover:text-primary transition-colors" />
+              <span className="text-xs mt-1">{item.name}</span>
+            </Link>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 };
