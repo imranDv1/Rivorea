@@ -65,6 +65,8 @@ const ProfilePage = () => {
     followingCount: number;
   } | null;
 
+
+
   const [userInfo, setUserInfo] = useState<UserInfo>(null);
   const [loading, setLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -492,8 +494,8 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="w-full  h-screen ">
-      <Card className="h-screen overflow-y-scroll  scrollbar-hide">
+    <div className="w-full  h-full ">
+      <Card className="h-full overflow-y-scroll  scrollbar-hide">
         <CardHeader className="relative">
           {/* Banner */}
           {loading ? (
@@ -595,7 +597,7 @@ const ProfilePage = () => {
             )}
           </div>
         </CardDescription>
-        <CardContent>
+        <CardContent className="px-1 ">
           <Tabs className="items-start w-full" defaultValue="tab-1">
             <TabsList className="w-full flex justify-between">
               <TabsTrigger className="flex-1" value="tab-1">
@@ -608,36 +610,8 @@ const ProfilePage = () => {
                 Media
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="tab-1">
-              {/* Only show posts after user info has loaded */}
-              {loading ? (
-                // Posts skeleton
-                <div className="w-full flex flex-col gap-4 mt-4">
-                  {[1, 2, 3].map((idx) => (
-                    <div
-                      className="w-full rounded-xl p-4 bg-background border"
-                      key={idx}
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <Skeleton className="w-8 h-8 rounded-full" />
-                        <Skeleton className="h-5 w-20 rounded" />
-                        <Skeleton className="h-5 w-16 rounded" />
-                      </div>
-                      <Skeleton className="h-4 w-full mb-1 rounded" />
-                      <Skeleton className="h-4 w-2/3 mb-1 rounded" />
-                      <Skeleton className="h-40 w-full rounded mb-2" />
-                      <div className="flex justify-between mt-3">
-                        <Skeleton className="h-4 w-9 rounded" />
-                        <Skeleton className="h-4 w-9 rounded" />
-                        <Skeleton className="h-4 w-9 rounded" />
-                        <Skeleton className="h-4 w-9 rounded" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                // ========== Real content below =============
-                <div className=" w-full flex flex-col gap-4 mt-4">
+            <TabsContent value="tab-1" className="w-full">
+            <div className=" w-full flex flex-col gap-4 mt-4">
                   {/* Post 2 with 4 images */}
                   <div className=" w-full rounded-xl p-4 bg-background border">
                     <div className="flex items-center gap-3 mb-2">
@@ -784,8 +758,7 @@ const ProfilePage = () => {
                       </span>
                     </div>
                   </div>
-                  {/* Post 3 */}
-                  <div className="rounded-xl p-4 bg-background border">
+                  <div className=" w-full rounded-xl p-4 bg-background border">
                     <div className="flex items-center gap-3 mb-2">
                       <Image
                         src="/me.png"
@@ -796,21 +769,24 @@ const ProfilePage = () => {
                       />
                       <span className="font-semibold">Imraan</span>
                       <span className="text-muted-foreground">
-                        @imraan · 1h
+                        @imraan · 16m
                       </span>
                     </div>
-                    <p className="text-base text-foreground">
-                      Excited to share my new project launch! 🚀 Check it out
-                      and let me know your thoughts.
+                    <p className="text-base text-foreground mb-3">
+                      Just got back from the weekend trip! 🌄 Check out these
+                      scenes I captured 📸{" "}
+                      <span className="text-blue-500">#TravelDiaries</span>
                     </p>
-                    <div className="flex justify-between mt-4 text-muted-foreground text-sm">
+                    {/* 4 images in grid */}
+                
+                    <div className="flex justify-between mt-3 text-muted-foreground text-sm">
                       <Button
                         variant="ghost"
                         size="icon"
                         className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
                       >
                         <User className="size-4" />
-                        23
+                        36
                       </Button>
                       <Button
                         variant="ghost"
@@ -818,7 +794,7 @@ const ProfilePage = () => {
                         className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
                       >
                         <MessageCircle className="size-4" />
-                        10
+                        12
                       </Button>
                       <Button
                         variant="ghost"
@@ -826,121 +802,17 @@ const ProfilePage = () => {
                         className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
                       >
                         <Heart className="size-4" />
-                        120
+                        240
                       </Button>
                       <span className="flex items-center gap-1">
                         <Repeat2 className="size-4" />
-                        5.5k
-                      </span>
-                    </div>
-                  </div>
-                  {/* Post 4 */}
-                  <div className="rounded-xl p-4 bg-background border">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Image
-                        src="/me.png"
-                        alt="Profile"
-                        width={32}
-                        height={32}
-                        className="w-8 h-8 rounded-full"
-                      />
-                      <span className="font-semibold">Imraan</span>
-                      <span className="text-muted-foreground">
-                        @imraan · 3h
-                      </span>
-                    </div>
-                    <p className="text-base text-foreground">
-                      Working on a full-stack app—TypeScript is such a joy to
-                      use!
-                    </p>
-                    <Image
-                      src="/post1.jpg"
-                      alt="sample post img"
-                      width={600}
-                      height={220}
-                      className="rounded-lg mt-3 w-full max-h-110 object-cover"
-                    />
-                    <div className="flex justify-between mt-4 text-muted-foreground text-sm">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <User className="size-4" />
-                        19
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <MessageCircle className="size-4" />4
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <Heart className="size-4" />
-                        88
-                      </Button>
-                      <span className="flex items-center gap-1">
-                        <Repeat2 className="size-4" />
-                        2.1k
-                      </span>
-                    </div>
-                  </div>
-                  {/* Post 5 */}
-                  <div className="rounded-xl p-4 bg-background border">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Image
-                        src="/me.png"
-                        alt="Profile"
-                        width={32}
-                        height={32}
-                        className="w-8 h-8 rounded-full"
-                      />
-                      <span className="font-semibold">Imraan</span>
-                      <span className="text-muted-foreground">
-                        @imraan · 7h
-                      </span>
-                    </div>
-                    <p className="text-base text-foreground">
-                      Web dev tip: Use flexbox or CSS grid to easily lay out any
-                      UI! 💡
-                    </p>
-                    <div className="flex justify-between mt-4 text-muted-foreground text-sm">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <User className="size-4" />7
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <MessageCircle className="size-4" />1
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <Heart className="size-4" />
-                        33
-                      </Button>
-                      <span className="flex items-center gap-1">
-                        <Repeat2 className="size-4" />
-                        1k
+                        7.3k
                       </span>
                     </div>
                   </div>
                 </div>
-              )}
             </TabsContent>
+
             <TabsContent value="tab-2">
               <div className="p-4 text-center text-muted-foreground text-xs">
                 No replies yet.
