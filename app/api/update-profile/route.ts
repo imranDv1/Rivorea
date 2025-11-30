@@ -22,13 +22,13 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (typeof name === "string" && name.length > 10) {
+    if (typeof name === "string" && name.length > 50) {
       return NextResponse.json(
         { message: "Name must be at most 10 characters" },
         { status: 400 }
       );
     }
-    if (typeof username === "string" && username.length > 10) {
+    if (typeof username === "string" && username.length > 50) {
       return NextResponse.json(
         { message: "Username must be at most 10 characters" },
         { status: 400 }
@@ -39,6 +39,28 @@ export async function POST(req: NextRequest) {
         { message: "Bio must be at most 160 characters" },
         { status: 400 }
       );
+    }
+
+    // Check if username does not exist for other users
+    if (typeof username === "string") {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          username: username,
+          NOT: {
+            id: userId,
+          },
+        },
+        select: { id: true },
+      });
+      if (!existingUser) {
+        // Username is not taken, proceed
+      } else {
+        // Username taken
+        return NextResponse.json(
+          { message: "Username already taken" },
+          { status: 409 }
+        );
+      }
     }
 
     // Build update object with only provided fields
@@ -109,4 +131,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
