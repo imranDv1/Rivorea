@@ -9,8 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import SignOutButton from "@/components/ui/signOut";
-import { UserDropdown } from "@/components/UserDropdown";
+
 import { authClient } from "@/lib/auth-client";
 import {
   Bell,
@@ -26,6 +25,7 @@ import {
   User,
   UserPlus,
   X,
+  Plus,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -198,6 +198,311 @@ const Layout = ({ children }: { children: ReactNode }) => {
     redirect("/login");
   }
 
+  // Dialog component reused for both desktop and mobile button
+  const postDialog = (
+    <Dialog
+      open={isDialogOpen}
+      onOpenChange={(open) => {
+        setIsDialogOpen(open);
+        if (!open) {
+          // Reset images and content when dialog closes
+          setUploadedImages([]);
+          setUploadedFiles([]);
+          setPostContent("");
+        }
+      }}
+    >
+      {/* DialogTrigger must be a child where you want to trigger it manually */}
+      {/* On mobile, we'll open by setIsDialogOpen(true) */}
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Post</DialogTitle>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col items-start gap-3">
+            <Image
+              src={user?.image as string}
+              alt="Profile image"
+              width={100}
+              height={100}
+              className="rounded-full size-12 object-cover shrink-0"
+            />
+
+            <Textarea
+              placeholder="What's on your mind?"
+              maxLength={280}
+              autoFocus={true}
+              onChange={(e) => setPostContent(e.target.value)}
+              className="resize-none h-[150px] flex-1"
+              value={postContent}
+            />
+          </div>
+
+          {/* Image previews */}
+          {uploadedImages.length > 0 && (
+            <div className="grid grid-cols-2 gap-2">
+              {uploadedImages.map((imageUrl, index) => (
+                <div
+                  key={index}
+                  className="relative group rounded-lg overflow-hidden border"
+                >
+                  <Image
+                    src={imageUrl}
+                    alt={`Upload ${index + 1}`}
+                    width={400}
+                    height={128}
+                    className="w-full h-32 object-cover"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => {
+                      setUploadedImages((prev) =>
+                        prev.filter((_, i) => i !== index)
+                      );
+                      setUploadedFiles((prev) =>
+                        prev.filter((_, i) => i !== index)
+                      );
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Image upload button */}
+          <div className="flex items-center gap-2">
+            <input
+              id="imageUpload"
+              type="file"
+              accept="image/png, image/jpeg, image/gif, image/webp, video/mp4, video/webm"
+              max={4}
+              min={1}
+              multiple
+              className="hidden"
+              onChange={async (e) => {
+                const files = e.target.files;
+                if (files) {
+                  const remainingSlots = 4 - uploadedImages.length;
+                  if (remainingSlots <= 0) {
+                    toast.error("Maximum 4 media files allowed");
+                    e.target.value = "";
+                    return;
+                  }
+
+                  const filesArray = Array.from(files);
+
+                  // Validate file sizes
+                  const validFiles: File[] = [];
+                  const invalidFiles: string[] = [];
+
+                  filesArray.forEach((file) => {
+                    const isImage = file.type.startsWith("image/");
+                    const isVideo = file.type.startsWith("video/");
+                    const maxSize = isImage
+                      ? MAX_IMAGE_SIZE
+                      : isVideo
+                      ? MAX_VIDEO_SIZE
+                      : MAX_IMAGE_SIZE;
+
+                    if (file.size > maxSize) {
+                      const maxSizeMB = maxSize / (1024 * 1024);
+                      invalidFiles.push(
+                        `${file.name} (max ${maxSizeMB}MB)`
+                      );
+                    } else if (!isImage && !isVideo) {
+                      invalidFiles.push(`${file.name} (invalid type)`);
+                    } else {
+                      validFiles.push(file);
+                    }
+                  });
+
+                  if (invalidFiles.length > 0) {
+                    toast.error(
+                      `Invalid files: ${invalidFiles.join(", ")}`
+                    );
+                  }
+
+                  const filesToAdd = validFiles.slice(
+                    0,
+                    remainingSlots
+                  );
+
+                  if (validFiles.length > remainingSlots) {
+                    toast.error(
+                      `You can only upload ${remainingSlots} more file(s). ${validFiles.length - remainingSlots} file(s) were not added.`
+                    );
+                  }
+
+                  if (filesToAdd.length === 0) {
+                    e.target.value = "";
+                    return;
+                  }
+
+                  // Read all files as data URLs for preview
+                  const readFileAsDataURL = (
+                    file: File
+                  ): Promise<string> => {
+                    return new Promise((resolve, reject) => {
+                      const reader = new FileReader();
+                      reader.onloadend = () =>
+                        resolve(reader.result as string);
+                      reader.onerror = reject;
+                      reader.readAsDataURL(file);
+                    });
+                  };
+
+                  try {
+                    const newImages = await Promise.all(
+                      filesToAdd.map((file) => readFileAsDataURL(file))
+                    );
+                    setUploadedImages((prev) => [
+                      ...prev,
+                      ...newImages,
+                    ]);
+                    setUploadedFiles((prev) => [
+                      ...prev,
+                      ...filesToAdd,
+                    ]);
+                  } catch (error) {
+                    console.error("Error reading files:", error);
+                    toast.error("Error reading media files");
+                  }
+                }
+                e.target.value = "";
+              }}
+              disabled={uploadedImages.length >= 4}
+            />
+            <label htmlFor="imageUpload">
+              <Button
+                variant="ghost"
+                size="icon-lg"
+                type="button"
+                onClick={(e) => {
+                  if (uploadedImages.length >= 4) {
+                    toast.error("Maximum 4 media files allowed");
+                    return;
+                  }
+                  document.getElementById("imageUpload")?.click();
+                }}
+                disabled={uploadedImages.length >= 4}
+              >
+                <ImageIcon />
+              </Button>
+            </label>
+            {uploadedImages.length > 0 && (
+              <span className="text-sm text-muted-foreground">
+                {uploadedImages.length}/4 files
+              </span>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          {/* 
+            FIX: Do not render a <button> inside <DialogClose>, which itself is a button. 
+            Instead, use a normal element (like <span>) that triggers the close. 
+          */}
+          <DialogClose asChild>
+            <span>
+              <Button variant="outline" type="button">Cancel</Button>
+            </span>
+          </DialogClose>
+          <Button
+            variant="default"
+            onClick={async () => {
+              if (!postContent.trim() && uploadedFiles.length === 0) {
+                toast.error("Please add content or media to your post");
+                return;
+              }
+
+              if (!user?.id) {
+                toast.error("User not found");
+                return;
+              }
+
+              setIsPosting(true);
+
+              try {
+                // Upload all files to Supabase
+                const mediaUrls: string[] = [];
+
+                for (const file of uploadedFiles) {
+                  const formData = new FormData();
+                  formData.append("file", file);
+                  formData.append("userId", user.id);
+
+                  const uploadResponse = await fetch(
+                    "/api/upload-post-media",
+                    {
+                      method: "POST",
+                      body: formData,
+                    }
+                  );
+
+                  if (!uploadResponse.ok) {
+                    const errorData = await uploadResponse.json();
+                    throw new Error(
+                      errorData.message || "Failed to upload media"
+                    );
+                  }
+
+                  const uploadData = await uploadResponse.json();
+                  mediaUrls.push(uploadData.url);
+                }
+
+                // Create post
+                const postResponse = await fetch("/api/post", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    userId: user.id,
+                    content: postContent.trim(),
+                    mediaUrl: mediaUrls,
+                  }),
+                });
+
+                if (!postResponse.ok) {
+                  const errorData = await postResponse.json();
+                  throw new Error(
+                    errorData.message || "Failed to create post"
+                  );
+                }
+
+                toast.success("Post created successfully!");
+
+                // Reset form
+                setUploadedImages([]);
+                setUploadedFiles([]);
+                setPostContent("");
+
+                // Close dialog
+                setIsDialogOpen(false);
+              } catch (error) {
+                console.error("Error creating post:", error);
+                toast.error(
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to create post"
+                );
+              } finally {
+                setIsPosting(false);
+              }
+            }}
+            disabled={isPosting}
+          >
+            {isPosting ? "Posting..." : "Post"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <div className="w-full h-screen flex lg:gap-4 relative">
       {/* Sidebar for desktop */}
@@ -222,7 +527,6 @@ const Layout = ({ children }: { children: ReactNode }) => {
               onOpenChange={(open) => {
                 setIsDialogOpen(open);
                 if (!open) {
-                  // Reset images and content when dialog closes
                   setUploadedImages([]);
                   setUploadedFiles([]);
                   setPostContent("");
@@ -232,292 +536,8 @@ const Layout = ({ children }: { children: ReactNode }) => {
               <DialogTrigger asChild>
                 <Button className="w-full">Post</Button>
               </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Post</DialogTitle>
-                </DialogHeader>
-
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col items-start gap-3">
-                    <Image
-                      src={user?.image as string}
-                      alt="Profile image"
-                      width={100}
-                      height={100}
-                      className="rounded-full size-12 object-cover shrink-0"
-                    />
-
-                    <Textarea
-                      placeholder="What's on your mind?"
-                      maxLength={280}
-                      autoFocus={true}
-                      onChange={(e) => setPostContent(e.target.value)}
-                      className="resize-none h-[150px] flex-1"
-                    />
-                  </div>
-
-                  {/* Image previews */}
-                  {uploadedImages.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2">
-                      {uploadedImages.map((imageUrl, index) => (
-                        <div
-                          key={index}
-                          className="relative group rounded-lg overflow-hidden border"
-                        >
-                          <Image
-                            src={imageUrl}
-                            alt={`Upload ${index + 1}`}
-                            width={400}
-                            height={128}
-                            className="w-full h-32 object-cover"
-                          />
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => {
-                              setUploadedImages((prev) =>
-                                prev.filter((_, i) => i !== index)
-                              );
-                              setUploadedFiles((prev) =>
-                                prev.filter((_, i) => i !== index)
-                              );
-                            }}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Image upload button */}
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="imageUpload"
-                      type="file"
-                      accept="image/png, image/jpeg, image/gif, image/webp, video/mp4, video/webm"
-                      max={4}
-                      min={1}
-                      multiple
-                      className="hidden"
-                      onChange={async (e) => {
-                        const files = e.target.files;
-                        if (files) {
-                          const remainingSlots = 4 - uploadedImages.length;
-                          if (remainingSlots <= 0) {
-                            toast.error("Maximum 4 media files allowed");
-                            e.target.value = "";
-                            return;
-                          }
-
-                          const filesArray = Array.from(files);
-
-                          // Validate file sizes
-                          const validFiles: File[] = [];
-                          const invalidFiles: string[] = [];
-
-                          filesArray.forEach((file) => {
-                            const isImage = file.type.startsWith("image/");
-                            const isVideo = file.type.startsWith("video/");
-                            const maxSize = isImage
-                              ? MAX_IMAGE_SIZE
-                              : isVideo
-                              ? MAX_VIDEO_SIZE
-                              : MAX_IMAGE_SIZE;
-
-                            if (file.size > maxSize) {
-                              const maxSizeMB = maxSize / (1024 * 1024);
-                              invalidFiles.push(
-                                `${file.name} (max ${maxSizeMB}MB)`
-                              );
-                            } else if (!isImage && !isVideo) {
-                              invalidFiles.push(`${file.name} (invalid type)`);
-                            } else {
-                              validFiles.push(file);
-                            }
-                          });
-
-                          if (invalidFiles.length > 0) {
-                            toast.error(
-                              `Invalid files: ${invalidFiles.join(", ")}`
-                            );
-                          }
-
-                          const filesToAdd = validFiles.slice(
-                            0,
-                            remainingSlots
-                          );
-
-                          if (validFiles.length > remainingSlots) {
-                            toast.error(
-                              `You can only upload ${remainingSlots} more file(s). ${validFiles.length - remainingSlots} file(s) were not added.`
-                            );
-                          }
-
-                          if (filesToAdd.length === 0) {
-                            e.target.value = "";
-                            return;
-                          }
-
-                          // Read all files as data URLs for preview
-                          const readFileAsDataURL = (
-                            file: File
-                          ): Promise<string> => {
-                            return new Promise((resolve, reject) => {
-                              const reader = new FileReader();
-                              reader.onloadend = () =>
-                                resolve(reader.result as string);
-                              reader.onerror = reject;
-                              reader.readAsDataURL(file);
-                            });
-                          };
-
-                          try {
-                            const newImages = await Promise.all(
-                              filesToAdd.map((file) => readFileAsDataURL(file))
-                            );
-                            setUploadedImages((prev) => [
-                              ...prev,
-                              ...newImages,
-                            ]);
-                            setUploadedFiles((prev) => [
-                              ...prev,
-                              ...filesToAdd,
-                            ]);
-                          } catch (error) {
-                            console.error("Error reading files:", error);
-                            toast.error("Error reading media files");
-                          }
-                        }
-                        e.target.value = "";
-                      }}
-                      disabled={uploadedImages.length >= 4}
-                    />
-                    <label htmlFor="imageUpload">
-                      <Button
-                        variant="ghost"
-                        size="icon-lg"
-                        type="button"
-                        onClick={(e) => {
-                          if (uploadedImages.length >= 4) {
-                            toast.error("Maximum 4 media files allowed");
-                            return;
-                          }
-                          document.getElementById("imageUpload")?.click();
-                        }}
-                        disabled={uploadedImages.length >= 4}
-                      >
-                        <ImageIcon />
-                      </Button>
-                    </label>
-                    {uploadedImages.length > 0 && (
-                      <span className="text-sm text-muted-foreground">
-                        {uploadedImages.length}/4 files
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <DialogFooter>
-                  {/* 
-                    FIX: Do not render a <button> inside <DialogClose>, which itself is a button. 
-                    Instead, use a normal element (like <span>) that triggers the close. 
-                  */}
-                  <DialogClose asChild>
-                    <span>
-                      <Button variant="outline" type="button">Cancel</Button>
-                    </span>
-                  </DialogClose>
-                  <Button
-                    variant="default"
-                    onClick={async () => {
-                      if (!postContent.trim() && uploadedFiles.length === 0) {
-                        toast.error("Please add content or media to your post");
-                        return;
-                      }
-
-                      if (!user?.id) {
-                        toast.error("User not found");
-                        return;
-                      }
-
-                      setIsPosting(true);
-
-                      try {
-                        // Upload all files to Supabase
-                        const mediaUrls: string[] = [];
-
-                        for (const file of uploadedFiles) {
-                          const formData = new FormData();
-                          formData.append("file", file);
-                          formData.append("userId", user.id);
-
-                          const uploadResponse = await fetch(
-                            "/api/upload-post-media",
-                            {
-                              method: "POST",
-                              body: formData,
-                            }
-                          );
-
-                          if (!uploadResponse.ok) {
-                            const errorData = await uploadResponse.json();
-                            throw new Error(
-                              errorData.message || "Failed to upload media"
-                            );
-                          }
-
-                          const uploadData = await uploadResponse.json();
-                          mediaUrls.push(uploadData.url);
-                        }
-
-                        console.log(postContent)
-                        // Create post
-                        const postResponse = await fetch("/api/post", {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                          },
-                          body: JSON.stringify({
-                            userId: user.id,
-                            content: postContent.trim(),
-                            mediaUrl: mediaUrls,
-                          }),
-                        });
-
-                        if (!postResponse.ok) {
-                          const errorData = await postResponse.json();
-                          throw new Error(
-                            errorData.message || "Failed to create post"
-                          );
-                        }
-
-                        toast.success("Post created successfully!");
-
-                        // Reset form
-                        setUploadedImages([]);
-                        setUploadedFiles([]);
-                        setPostContent("");
-
-                        // Close dialog
-                        setIsDialogOpen(false);
-                      } catch (error) {
-                        console.error("Error creating post:", error);
-                        toast.error(
-                          error instanceof Error
-                            ? error.message
-                            : "Failed to create post"
-                        );
-                      } finally {
-                        setIsPosting(false);
-                      }
-                    }}
-                    disabled={isPosting}
-                  >
-                    {isPosting ? "Posting..." : "Post"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
+              {/* Sharing the same postDialog logic to keep all state in sync */}
+              {postDialog}
             </Dialog>
           </CardFooter>
         </Card>
@@ -665,7 +685,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
 
       {/* Mobile Navbar */}
       <nav className="fixed bottom-0 left-0 z-50 w-full bg-background border-t border-muted lg:hidden">
-        <div className="flex justify-around items-center p-2">
+        <div className="flex justify-around items-center p-2 relative">
           {mobileNavBar.map((item) => (
             <Link
               href={item.href}
@@ -676,8 +696,76 @@ const Layout = ({ children }: { children: ReactNode }) => {
               <span className="text-xs mt-1">{item.name}</span>
             </Link>
           ))}
+          {/* The plus button is now moved from here */}
         </div>
       </nav>
+      {/* Post dialog shared for both desktop sidebar (via DialogTrigger) and mobile plus button (via manual setIsDialogOpen) */}
+      {/* Render only once at root */}
+      {/* Floating blue plus button on mobile, bottom right just above the navbar */}
+      <div className="lg:hidden">
+        <Button
+          size="icon"
+          className="
+            bg-blue-500 
+            text-white 
+            rounded-full 
+            shadow-lg 
+            fixed 
+            z-[60] 
+            bottom-[74px] 
+            right-4
+            lg:hidden 
+            w-14 
+            h-14 
+            flex 
+            items-center 
+            justify-center 
+            border-4 
+            border-background 
+            hover:bg-blue-600
+            focus-visible:ring-2
+            focus-visible:ring-offset-2
+            focus-visible:ring-blue-600
+            "
+          aria-label="Create post"
+          onClick={() => setIsDialogOpen(true)}
+        >
+          <Plus className="w-8 h-8" />
+        </Button>
+        {postDialog}
+      </div>
+      <div className="lg:hidden">
+        <Button
+          size="icon"
+          className="
+            bg-red-500 
+            text-white 
+            rounded-full 
+            shadow-lg 
+            fixed 
+            z-60 
+            bottom-[74px] 
+            left-4
+            lg:hidden 
+            w-14 
+            h-14 
+            flex 
+            items-center 
+            justify-center 
+            border-4 
+            border-background 
+            hover:bg-blue-600
+            focus-visible:ring-2
+            focus-visible:ring-offset-2
+            focus-visible:ring-blue-600
+            "
+          aria-label="Create post"
+          onClick={handleLogout}
+        >
+          <LogOut className="w-8 h-8" />
+        </Button>
+        {postDialog}
+      </div>
     </div>
   );
 };
