@@ -75,7 +75,7 @@ export default function PasswordInput(
         <div className="relative">
           <Input
             id={id}
-            className="pe-9"
+            className="pe-9 ring-1 ring-[#343434]"
             placeholder="Password"
             type={isVisible ? "text" : "password"}
             value={password}

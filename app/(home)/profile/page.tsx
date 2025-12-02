@@ -436,6 +436,8 @@ const ProfilePage = () => {
     }
   };
 
+
+
   // Handle applying crop for banner image
   const handleApplyBannerCrop = async () => {
     if (!bannerImagePreview || !bannerCropperRef.current) return;
@@ -494,7 +496,9 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="w-full  h-full ">
+    <div className="w-full  relative h-full ">
+
+ 
       <Card className="h-full overflow-y-scroll  scrollbar-hide">
         <CardHeader className="relative">
           {/* Banner */}
@@ -506,7 +510,7 @@ const ProfilePage = () => {
               alt="Banner image"
               width={900}
               height={180}
-              className="w-full h-36 object-cover bg-[#333]"
+              className="w-full h-36 object-cover bg-[#333] cursor-pointer"
               priority
             />
           )}
@@ -687,6 +691,7 @@ const ProfilePage = () => {
                         className="w-full h-52 object-cover"
                       />
                     </div>
+                    
                     <div className="flex justify-between mt-3 text-muted-foreground text-sm">
                       <Button
                         variant="ghost"
@@ -874,7 +879,7 @@ const ProfilePage = () => {
                     />
                     <div className="flex gap-2">
                       <Button
-                        variant="outline"
+                        variant="default"
                         size="sm"
                         onClick={handleApplyBannerCrop}
                       >
@@ -925,7 +930,7 @@ const ProfilePage = () => {
                     {bannerImagePreview && (
                       <Button
                         type="button"
-                        variant="destructive"
+                        variant="outline"
                         size="sm"
                         className="absolute top-2 right-2"
                         onClick={() => {
@@ -967,7 +972,7 @@ const ProfilePage = () => {
                     </div>
                     <div className="flex gap-2">
                       <Button
-                        variant="outline"
+                        variant="default"
                         size="sm"
                         onClick={handleApplyProfileCrop}
                       >
@@ -1007,7 +1012,7 @@ const ProfilePage = () => {
                       {profileImagePreview && (
                         <Button
                           type="button"
-                          variant="destructive"
+                          variant="outline"
                           size="sm"
                           className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
                           onClick={() => {
@@ -1111,6 +1116,7 @@ const ProfilePage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+ 
     </div>
   );
 };

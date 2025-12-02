@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
-import PasswordInput from "../comp-51";
+import PasswordInput from "../custom-password-input";
 
 const formSchema = z
   .object({

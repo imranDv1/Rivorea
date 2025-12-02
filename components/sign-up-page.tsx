@@ -26,7 +26,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import PasswordInput from "./comp-51";
+import PasswordInput from "./custom-password-input";
 import { redirect } from "next/navigation";
 
 const formSchema = z.object({
@@ -143,13 +143,11 @@ export function SignUpPage() {
           <div className="-translate-y-87.5 absolute top-0 right-0 h-320 w-60 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,--theme(--color-foreground/.04)_0,--theme(--color-foreground/.01)_80%,transparent_100%)]" />
         </div>
 
-
         <Button asChild className="absolute top-7 left-25" variant="ghost">
           <Link href="/login">
             <ChevronLeftIcon />
             Login
           </Link>
-      
         </Button>
 
         <div className="mx-auto space-y-4 sm:w-sm">
@@ -161,8 +159,6 @@ export function SignUpPage() {
               login or create your rivorea account.
             </p>
           </div>
-
-       
 
           <div className="space-y-2">
             <Button
@@ -300,7 +296,6 @@ export function SignUpPage() {
             </form>
           </Form>
 
-      
           <p className="mt-8 text-muted-foreground text-sm">
             By clicking continue, you agree to our{" "}
             <a
