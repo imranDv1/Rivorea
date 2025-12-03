@@ -18,12 +18,10 @@ import {
   ImageIcon,
   LogOut,
   Mail,
-  Menu,
   Search,
   SearchIcon,
   Settings,
   User,
-  UserPlus,
   X,
   Plus,
 } from "lucide-react";
@@ -56,6 +54,14 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useNoteNotificationStore } from "@/context/post-create-trigger";
+
+type MediaType = "image" | "video";
+
+type MediaPreview = {
+  url: string; // data URL used for preview
+  type: MediaType;
+};
 
 const sections = [
   {
@@ -168,15 +174,21 @@ const fakeUsers = [
 
 const Layout = ({ children }: { children: ReactNode }) => {
   const { isPending, user } = useUser();
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<MediaPreview[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [postContent, setPostContent] = useState("");
   const [isPosting, setIsPosting] = useState(false);
+  const [postProgress, setPostProgress] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const triggerRefresh = useNoteNotificationStore(
+    (state) => state.triggerRefresh
+  );
   // Max file sizes
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-  const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+ const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+
+  const MAX_MEDIA_FILES = 4;
 
   if (isPending) {
     return (
@@ -205,8 +217,8 @@ const Layout = ({ children }: { children: ReactNode }) => {
       onOpenChange={(open) => {
         setIsDialogOpen(open);
         if (!open) {
-          // Reset images and content when dialog closes
-          setUploadedImages([]);
+          // Reset media and content when dialog closes
+          setMediaPreviews([]);
           setUploadedFiles([]);
           setPostContent("");
         }
@@ -239,32 +251,40 @@ const Layout = ({ children }: { children: ReactNode }) => {
             />
           </div>
 
-          {/* Image previews */}
-          {uploadedImages.length > 0 && (
+          {/* Media previews */}
+          {mediaPreviews.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
-              {uploadedImages.map((imageUrl, index) => (
+              {mediaPreviews.map((media, index) => (
                 <div
                   key={index}
                   className="relative group rounded-lg overflow-hidden border"
                 >
-                  <Image
-                    src={imageUrl}
-                    alt={`Upload ${index + 1}`}
-                    width={400}
-                    height={128}
-                    className="w-full h-32 object-cover"
-                  />
+                  {media.type === "image" ? (
+                    // For data URLs and fast previews we use normal <img>
+                    // (next/image may attempt to optimize and require external loader config)
+                    // so keep it simple and reliable with <img>.
+                    // Styling matches previous usage.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={media.url}
+                      alt={`Upload ${index + 1}`}
+                      className="w-full h-32 object-cover"
+                    />
+                  ) : (
+                    <video
+                      src={media.url}
+                      className="w-full h-32 object-cover"
+                      controls
+                      preload="metadata"
+                    />
+                  )}
                   <Button
                     variant="destructive"
                     size="icon"
                     className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => {
-                      setUploadedImages((prev) =>
-                        prev.filter((_, i) => i !== index)
-                      );
-                      setUploadedFiles((prev) =>
-                        prev.filter((_, i) => i !== index)
-                      );
+                      setMediaPreviews((prev) => prev.filter((_, i) => i !== index));
+                      setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
                     }}
                   >
                     <X className="h-4 w-4" />
@@ -274,29 +294,27 @@ const Layout = ({ children }: { children: ReactNode }) => {
             </div>
           )}
 
-          {/* Image upload button */}
+          {/* Media upload button */}
           <div className="flex items-center gap-2">
             <input
-              id="imageUpload"
+              id="mediaUpload"
               type="file"
-              accept="image/png, image/jpeg, image/gif, image/webp, video/mp4, video/webm"
-              max={4}
-              min={1}
+              accept="image/*,video/mp4,video/webm,video/quicktime"
               multiple
               className="hidden"
               onChange={async (e) => {
                 const files = e.target.files;
                 if (files) {
-                  const remainingSlots = 4 - uploadedImages.length;
+                  const remainingSlots = MAX_MEDIA_FILES - mediaPreviews.length;
                   if (remainingSlots <= 0) {
-                    toast.error("Maximum 4 media files allowed");
+                    toast.error(`Maximum ${MAX_MEDIA_FILES} media files allowed`);
                     e.target.value = "";
                     return;
                   }
 
                   const filesArray = Array.from(files);
 
-                  // Validate file sizes
+                  // Validate file sizes and types
                   const validFiles: File[] = [];
                   const invalidFiles: string[] = [];
 
@@ -306,31 +324,32 @@ const Layout = ({ children }: { children: ReactNode }) => {
                     const maxSize = isImage
                       ? MAX_IMAGE_SIZE
                       : isVideo
-                      ? MAX_VIDEO_SIZE
-                      : MAX_IMAGE_SIZE;
+                        ? MAX_VIDEO_SIZE
+                        : 0;
+
+                    if (!isImage && !isVideo) {
+                      invalidFiles.push(`${file.name} (invalid type)`);
+                      return;
+                    }
+
+                    if (maxSize === 0) {
+                      invalidFiles.push(`${file.name} (unsupported type)`);
+                      return;
+                    }
 
                     if (file.size > maxSize) {
-                      const maxSizeMB = maxSize / (1024 * 1024);
-                      invalidFiles.push(
-                        `${file.name} (max ${maxSizeMB}MB)`
-                      );
-                    } else if (!isImage && !isVideo) {
-                      invalidFiles.push(`${file.name} (invalid type)`);
+                      const maxMB = Math.round(maxSize / (1024 * 1024));
+                      invalidFiles.push(`${file.name} (max ${maxMB}MB)`);
                     } else {
                       validFiles.push(file);
                     }
                   });
 
                   if (invalidFiles.length > 0) {
-                    toast.error(
-                      `Invalid files: ${invalidFiles.join(", ")}`
-                    );
+                    toast.error(`Invalid files: ${invalidFiles.join(", ")}`);
                   }
 
-                  const filesToAdd = validFiles.slice(
-                    0,
-                    remainingSlots
-                  );
+                  const filesToAdd = validFiles.slice(0, remainingSlots);
 
                   if (validFiles.length > remainingSlots) {
                     toast.error(
@@ -344,59 +363,58 @@ const Layout = ({ children }: { children: ReactNode }) => {
                   }
 
                   // Read all files as data URLs for preview
-                  const readFileAsDataURL = (
-                    file: File
-                  ): Promise<string> => {
+                  const readFileAsDataURL = (file: File): Promise<string> => {
                     return new Promise((resolve, reject) => {
                       const reader = new FileReader();
-                      reader.onloadend = () =>
-                        resolve(reader.result as string);
+                      reader.onloadend = () => resolve(reader.result as string);
                       reader.onerror = reject;
                       reader.readAsDataURL(file);
                     });
                   };
 
                   try {
-                    const newImages = await Promise.all(
-                      filesToAdd.map((file) => readFileAsDataURL(file))
+                    const newPreviews: MediaPreview[] = await Promise.all(
+                      filesToAdd.map(async (file) => {
+                        const url = await readFileAsDataURL(file);
+                        const type: MediaType = file.type.startsWith("image/")
+                          ? "image"
+                          : "video";
+                        return { url, type };
+                      })
                     );
-                    setUploadedImages((prev) => [
-                      ...prev,
-                      ...newImages,
-                    ]);
-                    setUploadedFiles((prev) => [
-                      ...prev,
-                      ...filesToAdd,
-                    ]);
+
+                    setMediaPreviews((prev) => [...prev, ...newPreviews]);
+                    setUploadedFiles((prev) => [...prev, ...filesToAdd]);
                   } catch (error) {
                     console.error("Error reading files:", error);
                     toast.error("Error reading media files");
                   }
                 }
+                // clear the input so same file can be re-selected if user wants
                 e.target.value = "";
               }}
-              disabled={uploadedImages.length >= 4}
+              disabled={mediaPreviews.length >= MAX_MEDIA_FILES}
             />
-            <label htmlFor="imageUpload">
+            <label htmlFor="mediaUpload">
               <Button
                 variant="ghost"
                 size="icon-lg"
                 type="button"
                 onClick={(e) => {
-                  if (uploadedImages.length >= 4) {
-                    toast.error("Maximum 4 media files allowed");
+                  if (mediaPreviews.length >= MAX_MEDIA_FILES) {
+                    toast.error(`Maximum ${MAX_MEDIA_FILES} media files allowed`);
                     return;
                   }
-                  document.getElementById("imageUpload")?.click();
+                  document.getElementById("mediaUpload")?.click();
                 }}
-                disabled={uploadedImages.length >= 4}
+                disabled={mediaPreviews.length >= MAX_MEDIA_FILES}
               >
                 <ImageIcon />
               </Button>
             </label>
-            {uploadedImages.length > 0 && (
+            {mediaPreviews.length > 0 && (
               <span className="text-sm text-muted-foreground">
-                {uploadedImages.length}/4 files
+                {mediaPreviews.length}/{MAX_MEDIA_FILES} files
               </span>
             )}
           </div>
@@ -408,7 +426,9 @@ const Layout = ({ children }: { children: ReactNode }) => {
           */}
           <DialogClose asChild>
             <span>
-              <Button variant="outline" type="button">Cancel</Button>
+              <Button variant="outline" type="button">
+                Cancel
+              </Button>
             </span>
           </DialogClose>
           <Button
@@ -425,23 +445,25 @@ const Layout = ({ children }: { children: ReactNode }) => {
               }
 
               setIsPosting(true);
+              setPostProgress(5);
+              // Close composer immediately like Twitter and show top loading bar
+              setIsDialogOpen(false);
 
               try {
-                // Upload all files to Supabase
+                // Upload all files to your server (e.g., Supabase)
                 const mediaUrls: string[] = [];
+                const totalSteps = uploadedFiles.length + 1; // uploads + final post create
 
-                for (const file of uploadedFiles) {
+                for (let i = 0; i < uploadedFiles.length; i++) {
+                  const file = uploadedFiles[i];
                   const formData = new FormData();
                   formData.append("file", file);
                   formData.append("userId", user.id);
 
-                  const uploadResponse = await fetch(
-                    "/api/upload-post-media",
-                    {
-                      method: "POST",
-                      body: formData,
-                    }
-                  );
+                  const uploadResponse = await fetch("/api/upload-post-media", {
+                    method: "POST",
+                    body: formData,
+                  });
 
                   if (!uploadResponse.ok) {
                     const errorData = await uploadResponse.json();
@@ -452,6 +474,9 @@ const Layout = ({ children }: { children: ReactNode }) => {
 
                   const uploadData = await uploadResponse.json();
                   mediaUrls.push(uploadData.url);
+
+                  const step = i + 1;
+                  setPostProgress(Math.round((step / totalSteps) * 100));
                 }
 
                 // Create post
@@ -469,15 +494,14 @@ const Layout = ({ children }: { children: ReactNode }) => {
 
                 if (!postResponse.ok) {
                   const errorData = await postResponse.json();
-                  throw new Error(
-                    errorData.message || "Failed to create post"
-                  );
+                  throw new Error(errorData.message || "Failed to create post");
                 }
 
                 toast.success("Post created successfully!");
-
+                setPostProgress(100);
+                triggerRefresh();
                 // Reset form
-                setUploadedImages([]);
+                setMediaPreviews([]);
                 setUploadedFiles([]);
                 setPostContent("");
 
@@ -486,12 +510,11 @@ const Layout = ({ children }: { children: ReactNode }) => {
               } catch (error) {
                 console.error("Error creating post:", error);
                 toast.error(
-                  error instanceof Error
-                    ? error.message
-                    : "Failed to create post"
+                  error instanceof Error ? error.message : "Failed to create post"
                 );
               } finally {
                 setIsPosting(false);
+                setTimeout(() => setPostProgress(0), 400);
               }
             }}
             disabled={isPosting}
@@ -505,6 +528,15 @@ const Layout = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="w-full h-screen flex lg:gap-4 relative">
+      {/* Top loading bar while posting, reflects real upload/progress */}
+      {isPosting && (
+        <div className="fixed top-0 left-0 z-[80] w-full h-1 bg-blue-500/20">
+          <div
+            className="h-full bg-blue-500 transition-all duration-300"
+            style={{ width: `${postProgress}%` }}
+          />
+        </div>
+      )}
       {/* Sidebar for desktop */}
       <div className="hidden lg:flex flex-col h-full overflow-y-auto p-4">
         <Card className="w-max h-max ">
@@ -527,7 +559,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
               onOpenChange={(open) => {
                 setIsDialogOpen(open);
                 if (!open) {
-                  setUploadedImages([]);
+                  setMediaPreviews([]);
                   setUploadedFiles([]);
                   setPostContent("");
                 }

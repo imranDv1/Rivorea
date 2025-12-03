@@ -1,76 +1,54 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import {
-  Cropper,
-  CropperCropArea,
-  CropperDescription,
-  CropperImage,
-} from "@/components/ui/cropper";
-import BannerCropper, {
-  BannerCropperRef,
-} from "@/components/ui/banner-cropper";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { HiCheckBadge } from "react-icons/hi2";
-import Image from "next/image";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, MessageCircle, Repeat2, User, Upload, X } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { useUser } from "@/hooks/user";
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
-
-// Simple Skeleton loader component
-const Skeleton = ({
-  className = "",
-  style = {},
-}: {
-  className?: string;
-  style?: React.CSSProperties;
-}) => (
-  <div className={`bg-[#242424] animate-pulse ${className}`} style={style} />
-);
+import { useNoteNotificationStore } from "@/context/post-create-trigger";
+import type { Post, UserInfo } from "./profileTypes";
+import { ProfileHeader } from "./ProfileHeader";
+import { ProfileOverview } from "./ProfileOverview";
+import { ProfilePostsTabs } from "./ProfilePostsTabs";
+import { EditProfileDialog } from "./EditProfileDialog";
+import { ImagePreviewDialog } from "./ImagePreviewDialog";
+import type { BannerCropperRef } from "@/components/ui/banner-cropper";
 
 const ProfilePage = () => {
   const { userId } = useUser();
 
-  type UserInfo = {
-    username: string | null;
-    id: string;
-    createdAt: Date;
-    updatedAt: Date;
-    email: string;
-    emailVerified: boolean;
-    name: string;
-    image: string | null;
-    displayUsername: string | null;
-    bio: string | null;
-    bannerImage: string | null;
-    badge: string | null;
-    followersCount: number;
-    followingCount: number;
-  } | null;
-
-
-
   const [userInfo, setUserInfo] = useState<UserInfo>(null);
+  const [posts, setPosts] = useState<Post[] | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const refreshSignal = useNoteNotificationStore(
+    (state) => state.refreshNoteSignal
+  );
+
+  useEffect(() => {
+    async function FetchPosts() {
+      try {
+        // When userId is not available, don't try to fetch posts
+        if (!userId) {
+          setPosts(null);
+          return;
+        }
+
+        const response = await fetch("/api/post/get", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId }),
+        });
+
+        const data = await response.json();
+        setPosts(data.posts);
+      } catch (_err) {
+        toast.error("error getting posts");
+      }
+    }
+
+    FetchPosts();
+  }, [userId, refreshSignal]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -95,6 +73,156 @@ const ProfilePage = () => {
   const bannerImageInputRef = useRef<HTMLInputElement>(null);
   const profileCropperRef = useRef<HTMLDivElement>(null);
   const bannerCropperRef = useRef<BannerCropperRef>(null);
+
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string>("");
+
+  const handleDeletePost = async (postId: string) => {
+    if (!userId) return;
+
+    try {
+      const response = await fetch(
+        `/api/post?postId=${encodeURIComponent(postId)}&userId=${encodeURIComponent(userId)}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        toast.error(data?.error || "Failed to delete post");
+        return;
+      }
+
+      setPosts((prev) => (prev ? prev.filter((p) => p.id !== postId) : prev));
+      toast.success("Post deleted");
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      toast.error("Failed to delete post");
+    }
+  };
+
+  const handleSharePost = async (postId: string) => {
+    try {
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
+      const url = `${origin}/post/${postId}`;
+
+      if (navigator.share) {
+        await navigator.share({
+          title: userInfo?.name || "Post",
+          text: userInfo?.username ? `@${userInfo.username} on Rivorea` : "",
+          url,
+        });
+      } else if (navigator.clipboard && origin) {
+        await navigator.clipboard.writeText(url);
+        toast.success("Post link copied to clipboard");
+      } else {
+        toast.error("Sharing is not supported in this browser");
+      }
+    } catch (error) {
+      console.error("Error sharing post:", error);
+      toast.error("Failed to share post");
+    }
+  };
+
+  const handleToggleLike = async (postId: string) => {
+    if (!userId) {
+      toast.error("You must be logged in to like posts");
+      return;
+    }
+
+    // Optimistic update
+    setPosts((prev) =>
+      prev
+        ? prev.map((post) => {
+            if (post.id !== postId) return post;
+            const alreadyLiked = !!post.likedByCurrentUser;
+            const likeDelta = alreadyLiked ? -1 : 1;
+
+            return {
+              ...post,
+              likedByCurrentUser: !alreadyLiked,
+              _count: {
+                ...post._count,
+                likes: post._count.likes + likeDelta,
+              },
+            };
+          })
+        : prev
+    );
+
+    try {
+      const response = await fetch("/api/like", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, postId }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        toast.error(data?.message || "Failed to like post");
+        // rollback optimistic update
+        setPosts((prev) =>
+          prev
+            ? prev.map((post) => {
+                if (post.id !== postId) return post;
+                const likedNow = !!post.likedByCurrentUser;
+                const likeDelta = likedNow ? -1 : 1;
+                return {
+                  ...post,
+                  likedByCurrentUser: !likedNow,
+                  _count: {
+                    ...post._count,
+                    likes: post._count.likes + likeDelta,
+                  },
+                };
+              })
+            : prev
+        );
+        return;
+      }
+
+      const data = await response.json();
+
+      setPosts((prev) =>
+        prev
+          ? prev.map((post) =>
+              post.id === postId
+                ? {
+                    ...post,
+                    _count: {
+                      ...post._count,
+                      likes: data.likesCount ?? post._count.likes,
+                    },
+                  }
+                : post
+            )
+          : prev
+      );
+    } catch (error) {
+      console.error("Error liking post:", error);
+      toast.error("Failed to like post");
+      // rollback optimistic update
+      setPosts((prev) =>
+        prev
+          ? prev.map((post) => {
+              if (post.id !== postId) return post;
+              const likedNow = !!post.likedByCurrentUser;
+              const likeDelta = likedNow ? -1 : 1;
+              return {
+                ...post,
+                likedByCurrentUser: !likedNow,
+                _count: {
+                  ...post._count,
+                  likes: post._count.likes + likeDelta,
+                },
+              };
+            })
+          : prev
+      );
+    }
+  };
 
   useEffect(() => {
     if (!userId) {
@@ -436,8 +564,6 @@ const ProfilePage = () => {
     }
   };
 
-
-
   // Handle applying crop for banner image
   const handleApplyBannerCrop = async () => {
     if (!bannerImagePreview || !bannerCropperRef.current) return;
@@ -497,626 +623,77 @@ const ProfilePage = () => {
 
   return (
     <div className="w-full  relative h-full ">
-
- 
       <Card className="h-full overflow-y-scroll  scrollbar-hide">
-        <CardHeader className="relative">
-          {/* Banner */}
-          {loading ? (
-            <Skeleton className="w-full h-36 rounded-md object-cover bg-[#222]" />
-          ) : (
-            <Image
-              src={userInfo?.bannerImage || "/default-banner.png"}
-              alt="Banner image"
-              width={900}
-              height={180}
-              className="w-full h-36 object-cover bg-[#333] cursor-pointer"
-              priority
-            />
-          )}
-
-          {/* Profile Image */}
-          <div className="absolute -bottom-18 left-4 lg:left-8 flex items-center">
-            {loading ? (
-              <Skeleton className="rounded-full border-4 border-[#111] w-[120px] h-[120px] shadow-lg" />
-            ) : (
-              <Image
-                src={userInfo?.image || "/defualt.ong"}
-                alt="Profile image"
-                width={140}
-                height={140}
-                className="rounded-full border-4 border-[#111] object-cover w-[120px] h-[120px] shadow-lg"
-                priority
-              />
-            )}
-          </div>
-
-          {/* Name, username, badge - hidden on mobile, show on lg+ */}
-          <div className="hidden lg:block absolute -bottom-15 left-37 lg:left-40">
-            {loading ? (
-              <div className="space-y-2 mt-2">
-                <Skeleton className="h-6 w-28 rounded" />
-                <Skeleton className="h-5 w-20 rounded" />
-              </div>
-            ) : (
-              <>
-                <h1 className="text-[20px] flex items-center gap-2 font-semibold text-white">
-                  {userInfo?.name as string}
-                  {userInfo?.badge === "blue" ? (
-                    <HiCheckBadge className="text-blue-500" />
-                  ) : userInfo?.badge === "gold" ? (
-                    <HiCheckBadge className="text-yellow-400" />
-                  ) : null}
-                </h1>
-                <h1 className="text-[18px] text-muted-foreground">
-                  @{userInfo?.username || "imran"}
-                </h1>
-              </>
-            )}
-          </div>
-
-          {/* Edit Profile Button */}
-          <Button
-            variant="outline"
-            className="absolute right-8 -bottom-10 rounded-4xl ring-1 ring-[#333]"
-            disabled={loading}
-            onClick={() => setIsEditDialogOpen(true)}
-          >
-            Edit Profile
-          </Button>
-        </CardHeader>
-        <CardDescription className="mt-15 w-[90%] mx-auto">
-          {/* Name, username, badge - only show on mobile (block on <lg, hide on lg+) */}
-          <div className="block lg:hidden mb-2">
-            {loading ? (
-              <div className="space-y-2 mt-2">
-                <Skeleton className="h-6 w-28 rounded" />
-                <Skeleton className="h-5 w-20 rounded" />
-              </div>
-            ) : (
-              <>
-                <h1 className="text-[20px] flex items-center gap-2 font-semibold text-white">
-                  {userInfo?.name as string}
-                  {userInfo?.badge === "blue" ? (
-                    <HiCheckBadge className="text-blue-500" />
-                  ) : userInfo?.badge === "gold" ? (
-                    <HiCheckBadge className="text-yellow-400" />
-                  ) : null}
-                </h1>
-                <h1 className="text-[18px] text-muted-foreground">
-                  @{userInfo?.username || "imran"}
-                </h1>
-              </>
-            )}
-          </div>
-
-          {/* Bio */}
-          {loading ? (
-            <div className="space-y-1">
-              <Skeleton className="h-5 w-1/2 rounded mb-2" />
-              <Skeleton className="h-4 w-1/3 rounded" />
-            </div>
-          ) : (
-            <p className="text-[19px] text-primary">{userInfo?.bio}</p>
-          )}
-
-          {/* Followers/Following */}
-          <div className="flex items-center gap-5 mt-5">
-            {loading ? (
-              <>
-                <Skeleton className="h-5 w-24 rounded" />
-                <Skeleton className="h-5 w-24 rounded" />
-              </>
-            ) : (
-              <>
-                <h1>
-                  <span className="text-primary mr-1 font-semibold">
-                    {userInfo?.followingCount}
-                  </span>
-                  Following
-                </h1>
-                <h1>
-                  <span className="text-primary mr-1 font-semibold">
-                    {userInfo?.followersCount}
-                  </span>
-                  Followers
-                </h1>
-              </>
-            )}
-          </div>
-        </CardDescription>
-        <CardContent className="px-1 ">
-          <Tabs className="items-start w-full" defaultValue="tab-1">
-            <TabsList className="w-full flex justify-between">
-              <TabsTrigger className="flex-1" value="tab-1">
-                Posts (5)
-              </TabsTrigger>
-              <TabsTrigger className="flex-1" value="tab-2">
-                Replies
-              </TabsTrigger>
-              <TabsTrigger className="flex-1" value="tab-3">
-                Media
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="tab-1" className="w-full">
-            <div className=" w-full flex flex-col gap-4 mt-4">
-                  {/* Post 2 with 4 images */}
-                  <div className=" w-full rounded-xl p-4 bg-background border">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Image
-                        src="/me.png"
-                        alt="Profile"
-                        width={32}
-                        height={32}
-                        className="w-8 h-8 rounded-full"
-                      />
-                      <span className="font-semibold">Imraan</span>
-                      <span className="text-muted-foreground">
-                        @imraan · 16m
-                      </span>
-                    </div>
-                    <p className="text-base text-foreground mb-3">
-                      Just got back from the weekend trip! 🌄 Check out these
-                      scenes I captured 📸{" "}
-                      <span className="text-blue-500">#TravelDiaries</span>
-                    </p>
-                    {/* 4 images in grid */}
-                    <div className="grid grid-cols-2 gap-2 rounded-lg overflow-hidden mb-2">
-                      <Image
-                        src="/post2.jpg"
-                        alt="Trip Photo 1"
-                        width={320}
-                        height={180}
-                        className="w-full h-52 object-cover"
-                      />
-                      <Image
-                        src="/post3.jpg"
-                        alt="Trip Photo 2"
-                        width={320}
-                        height={180}
-                        className="w-full h-52 object-cover"
-                      />
-                      <Image
-                        src="/post1.jpg"
-                        alt="Trip Photo 3"
-                        width={320}
-                        height={180}
-                        className="w-full h-52 object-cover"
-                      />
-                      <Image
-                        src="/post4.png"
-                        alt="Trip Photo 4"
-                        width={320}
-                        height={180}
-                        className="w-full h-52 object-cover"
-                      />
-                    </div>
-                    
-                    <div className="flex justify-between mt-3 text-muted-foreground text-sm">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <User className="size-4" />
-                        36
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <MessageCircle className="size-4" />
-                        12
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <Heart className="size-4" />
-                        240
-                      </Button>
-                      <span className="flex items-center gap-1">
-                        <Repeat2 className="size-4" />
-                        7.3k
-                      </span>
-                    </div>
-                  </div>
-                  {/* Post 1: Video Post */}
-                  <div className="rounded-xl p-4 bg-background border">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Image
-                        src="/me.png"
-                        alt="Profile"
-                        width={32}
-                        height={32}
-                        className="w-8 h-8 rounded-full"
-                      />
-                      <span className="font-semibold">Imraan</span>
-                      <span className="text-muted-foreground">
-                        @imraan · 5m
-                      </span>
-                    </div>
-                    <p className="text-base text-foreground mb-3">
-                      Had to share this quick timelapse of my latest coding
-                      session. Watch till the end! ⏳💻
-                    </p>
-                    <div className="rounded-lg overflow-hidden mb-2">
-                      <video
-                        controls
-                        width="100%"
-                        poster="/post2.jpg"
-                        className="w-full max-h-96 rounded-lg object-cover bg-black"
-                      >
-                        <source
-                          src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-                          type="video/mp4"
-                        />
-                        Your browser does not support the video tag.
-                      </video>
-                    </div>
-                    <div className="flex justify-between mt-3 text-muted-foreground text-sm">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <User className="size-4" />
-                        95
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <MessageCircle className="size-4" />
-                        23
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <Heart className="size-4" />
-                        630
-                      </Button>
-                      <span className="flex items-center gap-1">
-                        <Repeat2 className="size-4" />
-                        14.7k
-                      </span>
-                    </div>
-                  </div>
-                  <div className=" w-full rounded-xl p-4 bg-background border">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Image
-                        src="/me.png"
-                        alt="Profile"
-                        width={32}
-                        height={32}
-                        className="w-8 h-8 rounded-full"
-                      />
-                      <span className="font-semibold">Imraan</span>
-                      <span className="text-muted-foreground">
-                        @imraan · 16m
-                      </span>
-                    </div>
-                    <p className="text-base text-foreground mb-3">
-                      Just got back from the weekend trip! 🌄 Check out these
-                      scenes I captured 📸{" "}
-                      <span className="text-blue-500">#TravelDiaries</span>
-                    </p>
-                    {/* 4 images in grid */}
-                
-                    <div className="flex justify-between mt-3 text-muted-foreground text-sm">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <User className="size-4" />
-                        36
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <MessageCircle className="size-4" />
-                        12
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
-                      >
-                        <Heart className="size-4" />
-                        240
-                      </Button>
-                      <span className="flex items-center gap-1">
-                        <Repeat2 className="size-4" />
-                        7.3k
-                      </span>
-                    </div>
-                  </div>
-                </div>
-            </TabsContent>
-
-            <TabsContent value="tab-2">
-              <div className="p-4 text-center text-muted-foreground text-xs">
-                No replies yet.
-              </div>
-            </TabsContent>
-            <TabsContent value="tab-3">
-              <div className="p-4 text-center text-muted-foreground text-xs">
-                No media to show.
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
+        <ProfileHeader
+          loading={loading}
+          userInfo={userInfo}
+          onEditClick={() => setIsEditDialogOpen(true)}
+          onBannerClick={() => {
+            if (userInfo?.bannerImage) {
+              setPreviewSrc(userInfo.bannerImage);
+              setPreviewTitle("Banner image");
+            }
+          }}
+          onAvatarClick={() => {
+            if (userInfo?.image) {
+              setPreviewSrc(userInfo.image);
+              setPreviewTitle("Profile image");
+            }
+          }}
+        />
+        <ProfileOverview loading={loading} userInfo={userInfo} />
+        <ProfilePostsTabs
+          loading={loading}
+          posts={posts}
+          userInfo={userInfo}
+          onDeletePost={handleDeletePost}
+          onSharePost={handleSharePost}
+          onToggleLike={handleToggleLike}
+        />
       </Card>
 
-      {/* Edit Profile Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto  border-[#333] scrollbar-hide">
-          <DialogHeader>
-            <DialogTitle className="text-white ">Edit Profile</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Update your profile information and images
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            {/* Banner Image */}
-            <div className="space-y-2">
-              <Label className="text-white">Banner Image</Label>
-              <div className="relative">
-                {showBannerCropper && bannerImagePreview ? (
-                  <div className="space-y-2">
-                    <BannerCropper
-                      ref={bannerCropperRef}
-                      image={bannerImagePreview}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={handleApplyBannerCrop}
-                      >
-                        Apply Crop
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setShowBannerCropper(false);
-                          setBannerImageFile(null);
-                          setBannerImagePreview(userInfo?.bannerImage || null);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <div className="h-36 w-full bg-[#222] rounded-lg overflow-hidden">
-                      {bannerImagePreview ? (
-                        <Image
-                          src={bannerImagePreview}
-                          alt="Banner preview"
-                          width={800}
-                          height={200}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                          No banner image
-                        </div>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="absolute bottom-2 right-2"
-                      onClick={() => {
-                        bannerImageInputRef.current?.click();
-                      }}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Banner
-                    </Button>
-                    {bannerImagePreview && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={() => {
-                          setBannerImagePreview(null);
-                          setBannerImageFile(null);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <input
-                      ref={bannerImageInputRef}
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/webp"
-                      className="hidden"
-                      onChange={handleBannerImageSelect}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Profile Image */}
-            <div className="space-y-2">
-              <Label className="text-white">Profile Image</Label>
-              <div className="flex items-center gap-4">
-                {showProfileCropper && profileImagePreview ? (
-                  <div className="space-y-2 flex-1">
-                    <div ref={profileCropperRef}>
-                      <Cropper
-                        image={profileImagePreview}
-                        aspectRatio={1}
-                        className="h-64 w-full bg-[#222] rounded-lg"
-                      >
-                        <CropperDescription />
-                        <CropperImage />
-                        <CropperCropArea className="rounded-full" />
-                      </Cropper>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={handleApplyProfileCrop}
-                      >
-                        Apply Crop
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setShowProfileCropper(false);
-                          setProfileImageFile(null);
-                          setProfileImagePreview(userInfo?.image || null);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="relative">
-                      <div className="w-24 h-24 rounded-full overflow-hidden bg-[#222] border-2 border-[#333]">
-                        {profileImagePreview ? (
-                          <Image
-                            src={profileImagePreview}
-                            alt="Profile preview"
-                            width={96}
-                            height={96}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                            No image
-                          </div>
-                        )}
-                      </div>
-                      {profileImagePreview && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                          onClick={() => {
-                            setProfileImagePreview(null);
-                            setProfileImageFile(null);
-                          }}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        profileImageInputRef.current?.click();
-                      }}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Photo
-                    </Button>
-                    <input
-                      ref={profileImageInputRef}
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/webp"
-                      className="hidden"
-                      onChange={handleProfileImageSelect}
-                    />
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-white">
-                Name
-              </Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                className="bg-[#222] border-[#333] text-white"
-                placeholder="Your name"
-              />
-            </div>
-
-            {/* Username */}
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-white">
-                Username
-              </Label>
-              <Input
-                id="username"
-                value={formData.username}
-                onChange={(e) =>
-                  setFormData({ ...formData, username: e.target.value })
-                }
-                className="bg-[#222] border-[#333] text-white"
-                placeholder="username"
-              />
-            </div>
-
-            {/* Bio */}
-            <div className="space-y-2">
-              <Label htmlFor="bio" className="text-white">
-                Bio
-              </Label>
-              <div className="relative">
-                <Textarea
-                  id="bio"
-                  value={formData.bio}
-                  maxLength={160}
-                  onChange={(e) =>
-                    setFormData({ ...formData, bio: e.target.value })
-                  }
-                  className="bg-[#222] border-[#333] text-white min-h-24"
-                  placeholder="Tell us about yourself"
-                  rows={4}
-                />
-                <span className="absolute right-2 bottom-2 text-xs text-muted-foreground">
-                  {formData.bio.length}/160
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-              disabled={isSaving}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSaveProfile} disabled={isSaving}>
-              {isSaving ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
- 
+      <EditProfileDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        isSaving={isSaving}
+        userInfo={userInfo}
+        formData={formData}
+        setFormData={setFormData}
+        showBannerCropper={showBannerCropper}
+        bannerImagePreview={bannerImagePreview}
+        bannerImageInputRef={bannerImageInputRef}
+        bannerCropperRef={bannerCropperRef}
+        onBannerApplyCrop={handleApplyBannerCrop}
+        onBannerSelect={handleBannerImageSelect}
+        onBannerReset={() => {
+          setShowBannerCropper(false);
+          setBannerImageFile(null);
+          setBannerImagePreview(userInfo?.bannerImage || null);
+        }}
+        showProfileCropper={showProfileCropper}
+        profileImagePreview={profileImagePreview}
+        profileImageInputRef={profileImageInputRef}
+        profileCropperRef={profileCropperRef}
+        onProfileApplyCrop={handleApplyProfileCrop}
+        onProfileSelect={handleProfileImageSelect}
+        onProfileReset={() => {
+          setShowProfileCropper(false);
+          setProfileImageFile(null);
+          setProfileImagePreview(userInfo?.image || null);
+        }}
+        onSaveProfile={handleSaveProfile}
+      />
+      <ImagePreviewDialog
+        open={!!previewSrc}
+        src={previewSrc}
+        title={previewTitle}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewSrc(null);
+            setPreviewTitle("");
+          }
+        }}
+      />
     </div>
   );
 };

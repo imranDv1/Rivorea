@@ -42,7 +42,7 @@ type Props = {
  * - containerRef: a ref to the root container element that contains the cropper
  */
 const BannerCropper = forwardRef(function BannerCropper(
-  { image, aspectRatio = 5, className = "" }: Props,
+  { image, aspectRatio = 3, className = "" }: Props,
   ref: Ref<BannerCropperRef | null>
 ) {
   const containerRef = useRef<HTMLDivElement | null>(null);
