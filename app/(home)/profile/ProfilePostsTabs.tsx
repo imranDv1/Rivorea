@@ -78,23 +78,27 @@ export function ProfilePostsTabs({
                   key={post?.id}
                   className=" w-full rounded-xl p-4 bg-background border"
                 >
-                  <div className="flex justify-between items-center gap-3 mb-2">
-                    <div className="flex items-center gap-3">
+                  <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-2 w-full">
+                    <div className="flex items-center gap-3 min-w-0 w-full">
                       <Image
                         src={userInfo?.image || "/default.png"}
                         alt="Profile"
                         width={32}
                         height={32}
-                        className="w-8 h-8 rounded-full"
+                        className="w-8 h-8 rounded-full shrink-0"
                       />
-                      <span className="font-semibold">{userInfo?.name}</span>
-                      <span className="text-muted-foreground">
-                        @{userInfo?.username} · {timeAgo(post.createdAt)}
-                      </span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-semibold truncate leading-tight max-w-[120px] sm:max-w-[170px]">
+                          {userInfo?.name}
+                        </span>
+                        <span className="text-muted-foreground text-xs truncate leading-tight max-w-[170px] sm:max-w-[210px]">
+                          @{userInfo?.username} &middot; {timeAgo(post.createdAt)}
+                        </span>
+                      </div>
                     </div>
-                    <div>
+                    <div className="ml-2 shrink-0">
                       <DropdownMenu>
-                        <DropdownMenuTrigger>
+                        <DropdownMenuTrigger className="cursor-pointer">
                           <BsThreeDots />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>

@@ -304,6 +304,8 @@ export function EditProfileDialog(props: EditProfileDialogProps) {
             </Label>
             <Input
               id="username"
+              maxLength={10}
+              minLength={3}
               value={formData.username}
               onChange={(e) => {
                 setFormData({ ...formData, username: e.target.value });
