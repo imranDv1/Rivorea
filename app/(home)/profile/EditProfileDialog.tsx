@@ -21,8 +21,21 @@ import {
 import BannerCropper, {
   BannerCropperRef,
 } from "@/components/ui/banner-cropper";
-import { MutableRefObject } from "react";
+import { MutableRefObject, useState } from "react";
 import type { UserInfo } from "./profileTypes";
+
+// --- Username validation utility functions ---
+function validateName(name: string): string | null {
+  if (!name.trim()) return "Name can't be empty";
+  return null;
+}
+function validateUsername(username: string): string | null {
+  if (!username.trim()) return "Username can't be empty";
+  // Only allow [a-zA-Z0-9_], no spaces, no other special chars.
+  if (!/^[a-zA-Z0-9_]+$/.test(username))
+    return "Username can only contain letters, numbers and underscores";
+  return null;
+}
 
 type FormData = {
   name: string;
@@ -80,6 +93,13 @@ export function EditProfileDialog(props: EditProfileDialogProps) {
     onProfileReset,
     onSaveProfile,
   } = props;
+
+  const [touched, setTouched] = useState<{ name?: boolean; username?: boolean }>({});
+  const nameError = validateName(formData.name);
+  const usernameError = validateUsername(formData.username);
+
+  // Only allow submitting if valid
+  const canSave = !nameError && !usernameError && !isSaving;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -261,12 +281,20 @@ export function EditProfileDialog(props: EditProfileDialogProps) {
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              className="bg-[#222] border-[#333] text-white"
+              maxLength={10}
+              min={3}
+              onChange={(e) => {
+                setFormData({ ...formData, name: e.target.value });
+                setTouched((prev) => ({ ...prev, name: true }));
+              }}
+              onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
+              className={`bg-[#222] border-[#333] text-white ${touched.name && nameError ? "border-red-500" : ""}`}
               placeholder="Your name"
+              autoComplete="off"
             />
+            {touched.name && nameError && (
+              <p className="text-xs text-red-500 mt-1">{nameError}</p>
+            )}
           </div>
 
           {/* Username */}
@@ -277,12 +305,18 @@ export function EditProfileDialog(props: EditProfileDialogProps) {
             <Input
               id="username"
               value={formData.username}
-              onChange={(e) =>
-                setFormData({ ...formData, username: e.target.value })
-              }
-              className="bg-[#222] border-[#333] text-white"
+              onChange={(e) => {
+                setFormData({ ...formData, username: e.target.value });
+                setTouched((prev) => ({ ...prev, username: true }));
+              }}
+              onBlur={() => setTouched((prev) => ({ ...prev, username: true }))}
+              className={`bg-[#222] border-[#333] text-white ${touched.username && usernameError ? "border-red-500" : ""}`}
               placeholder="username"
+              autoComplete="off"
             />
+            {touched.username && usernameError && (
+              <p className="text-xs text-red-500 mt-1">{usernameError}</p>
+            )}
           </div>
 
           {/* Bio */}
@@ -317,7 +351,15 @@ export function EditProfileDialog(props: EditProfileDialogProps) {
           >
             Cancel
           </Button>
-          <Button onClick={onSaveProfile} disabled={isSaving}>
+          <Button
+            onClick={() => {
+              setTouched({ name: true, username: true });
+              if (canSave) {
+                onSaveProfile();
+              }
+            }}
+            disabled={!canSave}
+          >
             {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>
