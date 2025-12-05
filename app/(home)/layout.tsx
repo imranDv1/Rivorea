@@ -539,7 +539,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
       )}
       {/* Sidebar for desktop */}
       <div className="hidden lg:flex flex-col h-full overflow-y-auto p-4">
-        <Card className="w-max h-max ">
+        <Card className="w-full h-full overflow-hidden ">
           <CardContent className="flex flex-col gap-6">
             {sections.map((item) => (
               <div
