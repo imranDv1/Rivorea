@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { username } from "better-auth/plugins";
 import { sendResetPasswordEmail, sendVerificationEmail } from "./email";
-
+import { emailOTP } from "better-auth/plugins"
 import prisma from "./db";
 // If your Prisma file is located elsewhere, you can change the path
 
@@ -43,10 +43,7 @@ export const auth = betterAuth({
       
      }
     },
-    onPasswordReset: async ({ user }) => {
-      // your logic here
-      console.log(`Password for user ${user.email} has been reset.`);
-    },
+ 
     
   },
 
@@ -55,10 +52,7 @@ export const auth = betterAuth({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
-    facebook: { 
-            clientId: process.env.FACEBOOK_CLIENT_ID as string, 
-            clientSecret: process.env.FACEBOOK_CLIENT_SECRET as string, 
-       },
+  
   },
 
   plugins: [ 

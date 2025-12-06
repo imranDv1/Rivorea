@@ -158,7 +158,7 @@ export function PostVideoPlayer({ src, className = "" }: PostVideoPlayerProps) {
         playsInline
       />
 
-      {/* Play overlay (center) */}
+      {/* Play overlay (center) buttons  */}
       <button
         type="button"
         onClick={togglePlay}
