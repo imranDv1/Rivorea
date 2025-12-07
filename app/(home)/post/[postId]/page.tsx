@@ -88,7 +88,7 @@ export default function PostDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen scrollbar-hide">
         <div className="text-muted-foreground">Loading post...</div>
       </div>
     );
@@ -96,11 +96,15 @@ export default function PostDetailPage() {
 
   if (!post) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen scrollbar-hide">
         <div className="text-muted-foreground">Post not found</div>
       </div>
     );
   }
 
-  return <PostDetailView post={post} currentUserId={userId} />;
+  return (
+    <div className="flex flex-col h-screen overflow-hidden scrollbar-hide">
+      <PostDetailView post={post} currentUserId={userId} />
+    </div>
+  )
 }

@@ -486,7 +486,7 @@ export function PostDetailView({ post, currentUserId }: PostDetailViewProps) {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden scrollbar-hide">
       {/* Structured Data for SEO */}
       <script
         type="application/ld+json"

@@ -175,16 +175,13 @@ const fakeUsers = [
 
 const Layout = ({ children }: { children: ReactNode }) => {
   const { isPending, user } = useUser();
+  const pathname = usePathname();
   const [mediaPreviews, setMediaPreviews] = useState<MediaPreview[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [postContent, setPostContent] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [postProgress, setPostProgress] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const pathname = usePathname();
-  const isHomeOrProfile =
-    pathname === "/" || pathname === "/profile" || pathname?.startsWith("/profile/");
 
   const triggerRefresh = useNoteNotificationStore(
     (state) => state.triggerRefresh
@@ -214,6 +211,10 @@ const Layout = ({ children }: { children: ReactNode }) => {
     authClient.signOut();
     redirect("/login");
   }
+
+  // Only show mobile floating post & logout buttons on exact "/" and "/profile" ONLY
+  const showMobileActions =
+    pathname === "/" || pathname === "/profile";
 
   // Dialog component reused for both desktop and mobile button
   const postDialog = (
@@ -425,10 +426,6 @@ const Layout = ({ children }: { children: ReactNode }) => {
           </div>
         </div>
         <DialogFooter>
-          {/* 
-            FIX: Do not render a <button> inside <DialogClose>, which itself is a button. 
-            Instead, use a normal element (like <span>) that triggers the close. 
-          */}
           <DialogClose asChild>
             <span>
               <Button variant="outline" type="button">
@@ -451,11 +448,9 @@ const Layout = ({ children }: { children: ReactNode }) => {
 
               setIsPosting(true);
               setPostProgress(5);
-              // Close composer immediately like Twitter and show top loading bar
               setIsDialogOpen(false);
 
               try {
-                // Upload all files to your server (e.g., Supabase)
                 const mediaUrls: string[] = [];
                 const totalSteps = uploadedFiles.length + 1; // uploads + final post create
 
@@ -484,7 +479,6 @@ const Layout = ({ children }: { children: ReactNode }) => {
                   setPostProgress(Math.round((step / totalSteps) * 100));
                 }
 
-                // Create post
                 const postResponse = await fetch("/api/post", {
                   method: "POST",
                   headers: {
@@ -505,12 +499,9 @@ const Layout = ({ children }: { children: ReactNode }) => {
                 toast.success("Post created successfully!");
                 setPostProgress(100);
                 triggerRefresh();
-                // Reset form
                 setMediaPreviews([]);
                 setUploadedFiles([]);
                 setPostContent("");
-
-                // Close dialog
                 setIsDialogOpen(false);
               } catch (error) {
                 console.error("Error creating post:", error);
@@ -558,82 +549,76 @@ const Layout = ({ children }: { children: ReactNode }) => {
               </div>
             ))}
           </CardContent>
-          {/* Show Post button only on home/profile pages */}
-          {isHomeOrProfile && (
-            <CardFooter>
-              <Dialog
-                open={isDialogOpen}
-                onOpenChange={(open) => {
-                  setIsDialogOpen(open);
-                  if (!open) {
-                    setMediaPreviews([]);
-                    setUploadedFiles([]);
-                    setPostContent("");
-                  }
-                }}
-              >
-                <DialogTrigger asChild>
-                  <Button className="w-full">Post</Button>
-                </DialogTrigger>
-                {/* Sharing the same postDialog logic to keep all state in sync */}
-                {postDialog}
-              </Dialog>
-            </CardFooter>
-          )}
+          <CardFooter>
+            <Dialog
+              open={isDialogOpen}
+              onOpenChange={(open) => {
+                setIsDialogOpen(open);
+                if (!open) {
+                  setMediaPreviews([]);
+                  setUploadedFiles([]);
+                  setPostContent("");
+                }
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button className="w-full">Post</Button>
+              </DialogTrigger>
+              {postDialog}
+            </Dialog>
+          </CardFooter>
         </Card>
-        {/* user info dropdown, include logout only on home/profile */}
-        {isHomeOrProfile && (
-          <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Card className="w-[200px] mt-4 bg-transparent border-0  flex items-center ">
-                <CardContent className="flex items-center justify-between gap-6 sm:gap-9 flex-wrap sm:flex-nowrap">
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <Avatar className="w-10 h-10 sm:w-12 sm:h-12 shrink-0">
-                      <AvatarImage
-                        src={(user?.image as string) || ""}
-                        alt="Profile image"
-                        className="object-cover"
-                      />
-                      <AvatarFallback>
-                        {(user?.name?.[0] || "U").toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col min-w-0 items-start">
-                      <h1 className="truncate text-base sm:text-lg font-medium">
-                        {user?.name ? user.name.split(" ")[0] : "User"}
-                      </h1>
-                      <h1 className="text-xs sm:text-sm text-muted-foreground truncate">
-                        @{user?.username ?? "unknown"}
-                      </h1>
-                    </div>
+        {/* user info */}
+        <DropdownMenu>
+          <DropdownMenuTrigger>
+            <Card className="w-[200px] mt-4 bg-transparent border-0  flex items-center ">
+              <CardContent className="flex items-center justify-between gap-6 sm:gap-9 flex-wrap sm:flex-nowrap">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <Avatar className="w-10 h-10 sm:w-12 sm:h-12 shrink-0">
+                    <AvatarImage
+                      src={(user?.image as string) || ""}
+                      alt="Profile image"
+                      className="object-cover"
+                    />
+                    <AvatarFallback>
+                      {(user?.name?.[0] || "U").toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col min-w-0 items-start">
+                    <h1 className="truncate text-base sm:text-lg font-medium">
+                      {user?.name ? user.name.split(" ")[0] : "User"}
+                    </h1>
+                    <h1 className="text-xs sm:text-sm text-muted-foreground truncate">
+                      @{user?.username ?? "unknown"}
+                    </h1>
                   </div>
-                  <svg
-                    width="20"
-                    height="20"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    className="ml-auto shrink-0"
-                  >
-                    <circle cx="5" cy="12" r="2" fill="currentColor" />
-                    <circle cx="12" cy="12" r="2" fill="currentColor" />
-                    <circle cx="19" cy="12" r="2" fill="currentColor" />
-                  </svg>
-                </CardContent>
-              </Card>
+                </div>
+                <svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  className="ml-auto shrink-0"
+                >
+                  <circle cx="5" cy="12" r="2" fill="currentColor" />
+                  <circle cx="12" cy="12" r="2" fill="currentColor" />
+                  <circle cx="19" cy="12" r="2" fill="currentColor" />
+                </svg>
+              </CardContent>
+            </Card>
 
-              <DropdownMenuContent>
-                <DropdownMenuLabel onClick={handleLogout}>
-                  Logout
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Billing</DropdownMenuItem>
-                <DropdownMenuItem>Team</DropdownMenuItem>
-                <DropdownMenuItem>Subscription</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenuTrigger>
-          </DropdownMenu>
-        )}
+            <DropdownMenuContent>
+              <DropdownMenuLabel onClick={handleLogout}>
+                Logout
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>Profile</DropdownMenuItem>
+              <DropdownMenuItem>Billing</DropdownMenuItem>
+              <DropdownMenuItem>Team</DropdownMenuItem>
+              <DropdownMenuItem>Subscription</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenuTrigger>
+        </DropdownMenu>
       </div>
 
       {/* Main content */}
@@ -738,14 +723,10 @@ const Layout = ({ children }: { children: ReactNode }) => {
               <span className="text-xs mt-1">{item.name}</span>
             </Link>
           ))}
-          {/* The plus button is now moved from here */}
         </div>
       </nav>
-      {/* Post dialog shared for both desktop sidebar (via DialogTrigger) and mobile plus button (via manual setIsDialogOpen) */}
-      {/* Render only once at root */}
-      {/* Floating blue plus button on mobile, bottom right just above the navbar */}
-      {/* Show post and logout button on mobile only on home/profile */}
-      {isHomeOrProfile && (
+      {/* Show floating post & logout buttons only if on "/" or "/profile" */}
+      {showMobileActions && (
         <>
           <div className="lg:hidden">
             <Button
@@ -804,11 +785,12 @@ const Layout = ({ children }: { children: ReactNode }) => {
                 focus-visible:ring-offset-2
                 focus-visible:ring-blue-600
                 "
-              aria-label="Logout"
+              aria-label="Create post"
               onClick={handleLogout}
             >
               <LogOut className="w-8 h-8" />
             </Button>
+            {postDialog}
           </div>
         </>
       )}
