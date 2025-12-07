@@ -1,5 +1,6 @@
 "use client";
 import React, { ReactNode, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -181,12 +182,16 @@ const Layout = ({ children }: { children: ReactNode }) => {
   const [postProgress, setPostProgress] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const pathname = usePathname();
+  const isHomeOrProfile =
+    pathname === "/" || pathname === "/profile" || pathname?.startsWith("/profile/");
+
   const triggerRefresh = useNoteNotificationStore(
     (state) => state.triggerRefresh
   );
   // Max file sizes
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
- const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+  const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 
   const MAX_MEDIA_FILES = 4;
 
@@ -553,77 +558,82 @@ const Layout = ({ children }: { children: ReactNode }) => {
               </div>
             ))}
           </CardContent>
-          <CardFooter>
-            <Dialog
-              open={isDialogOpen}
-              onOpenChange={(open) => {
-                setIsDialogOpen(open);
-                if (!open) {
-                  setMediaPreviews([]);
-                  setUploadedFiles([]);
-                  setPostContent("");
-                }
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button className="w-full">Post</Button>
-              </DialogTrigger>
-              {/* Sharing the same postDialog logic to keep all state in sync */}
-              {postDialog}
-            </Dialog>
-          </CardFooter>
+          {/* Show Post button only on home/profile pages */}
+          {isHomeOrProfile && (
+            <CardFooter>
+              <Dialog
+                open={isDialogOpen}
+                onOpenChange={(open) => {
+                  setIsDialogOpen(open);
+                  if (!open) {
+                    setMediaPreviews([]);
+                    setUploadedFiles([]);
+                    setPostContent("");
+                  }
+                }}
+              >
+                <DialogTrigger asChild>
+                  <Button className="w-full">Post</Button>
+                </DialogTrigger>
+                {/* Sharing the same postDialog logic to keep all state in sync */}
+                {postDialog}
+              </Dialog>
+            </CardFooter>
+          )}
         </Card>
-        {/* user info */}
-        <DropdownMenu>
-          <DropdownMenuTrigger>
-            <Card className="w-[200px] mt-4 bg-transparent border-0  flex items-center ">
-              <CardContent className="flex items-center justify-between gap-6 sm:gap-9 flex-wrap sm:flex-nowrap">
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                  <Avatar className="w-10 h-10 sm:w-12 sm:h-12 shrink-0">
-                    <AvatarImage
-                      src={(user?.image as string) || ""}
-                      alt="Profile image"
-                      className="object-cover"
-                    />
-                    <AvatarFallback>
-                      {(user?.name?.[0] || "U").toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col min-w-0 items-start">
-                    <h1 className="truncate text-base sm:text-lg font-medium">
-                      {user?.name ? user.name.split(" ")[0] : "User"}
-                    </h1>
-                    <h1 className="text-xs sm:text-sm text-muted-foreground truncate">
-                      @{user?.username ?? "unknown"}
-                    </h1>
+        {/* user info dropdown, include logout only on home/profile */}
+        {isHomeOrProfile && (
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Card className="w-[200px] mt-4 bg-transparent border-0  flex items-center ">
+                <CardContent className="flex items-center justify-between gap-6 sm:gap-9 flex-wrap sm:flex-nowrap">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <Avatar className="w-10 h-10 sm:w-12 sm:h-12 shrink-0">
+                      <AvatarImage
+                        src={(user?.image as string) || ""}
+                        alt="Profile image"
+                        className="object-cover"
+                      />
+                      <AvatarFallback>
+                        {(user?.name?.[0] || "U").toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col min-w-0 items-start">
+                      <h1 className="truncate text-base sm:text-lg font-medium">
+                        {user?.name ? user.name.split(" ")[0] : "User"}
+                      </h1>
+                      <h1 className="text-xs sm:text-sm text-muted-foreground truncate">
+                        @{user?.username ?? "unknown"}
+                      </h1>
+                    </div>
                   </div>
-                </div>
-                <svg
-                  width="20"
-                  height="20"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  className="ml-auto shrink-0"
-                >
-                  <circle cx="5" cy="12" r="2" fill="currentColor" />
-                  <circle cx="12" cy="12" r="2" fill="currentColor" />
-                  <circle cx="19" cy="12" r="2" fill="currentColor" />
-                </svg>
-              </CardContent>
-            </Card>
+                  <svg
+                    width="20"
+                    height="20"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    className="ml-auto shrink-0"
+                  >
+                    <circle cx="5" cy="12" r="2" fill="currentColor" />
+                    <circle cx="12" cy="12" r="2" fill="currentColor" />
+                    <circle cx="19" cy="12" r="2" fill="currentColor" />
+                  </svg>
+                </CardContent>
+              </Card>
 
-            <DropdownMenuContent>
-              <DropdownMenuLabel onClick={handleLogout}>
-                Logout
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem>Billing</DropdownMenuItem>
-              <DropdownMenuItem>Team</DropdownMenuItem>
-              <DropdownMenuItem>Subscription</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenuTrigger>
-        </DropdownMenu>
+              <DropdownMenuContent>
+                <DropdownMenuLabel onClick={handleLogout}>
+                  Logout
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Profile</DropdownMenuItem>
+                <DropdownMenuItem>Billing</DropdownMenuItem>
+                <DropdownMenuItem>Team</DropdownMenuItem>
+                <DropdownMenuItem>Subscription</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenuTrigger>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Main content */}
@@ -734,70 +744,74 @@ const Layout = ({ children }: { children: ReactNode }) => {
       {/* Post dialog shared for both desktop sidebar (via DialogTrigger) and mobile plus button (via manual setIsDialogOpen) */}
       {/* Render only once at root */}
       {/* Floating blue plus button on mobile, bottom right just above the navbar */}
-      <div className="lg:hidden">
-        <Button
-          size="icon"
-          className="
-            bg-blue-500 
-            text-white 
-            rounded-full 
-            shadow-lg 
-            fixed 
-            z-[60] 
-            bottom-[74px] 
-            right-4
-            lg:hidden 
-            w-14 
-            h-14 
-            flex 
-            items-center 
-            justify-center 
-            border-4 
-            border-background 
-            hover:bg-blue-600
-            focus-visible:ring-2
-            focus-visible:ring-offset-2
-            focus-visible:ring-blue-600
-            "
-          aria-label="Create post"
-          onClick={() => setIsDialogOpen(true)}
-        >
-          <Plus className="w-8 h-8" />
-        </Button>
-        {postDialog}
-      </div>
-      <div className="lg:hidden">
-        <Button
-          size="icon"
-          className="
-            bg-red-500 
-            text-white 
-            rounded-full 
-            shadow-lg 
-            fixed 
-            z-60 
-            bottom-[74px] 
-            left-4
-            lg:hidden 
-            w-14 
-            h-14 
-            flex 
-            items-center 
-            justify-center 
-            border-4 
-            border-background 
-            hover:bg-blue-600
-            focus-visible:ring-2
-            focus-visible:ring-offset-2
-            focus-visible:ring-blue-600
-            "
-          aria-label="Create post"
-          onClick={handleLogout}
-        >
-          <LogOut className="w-8 h-8" />
-        </Button>
-        {postDialog}
-      </div>
+      {/* Show post and logout button on mobile only on home/profile */}
+      {isHomeOrProfile && (
+        <>
+          <div className="lg:hidden">
+            <Button
+              size="icon"
+              className="
+                bg-blue-500 
+                text-white 
+                rounded-full 
+                shadow-lg 
+                fixed 
+                z-[60] 
+                bottom-[74px] 
+                right-4
+                lg:hidden 
+                w-14 
+                h-14 
+                flex 
+                items-center 
+                justify-center 
+                border-4 
+                border-background 
+                hover:bg-blue-600
+                focus-visible:ring-2
+                focus-visible:ring-offset-2
+                focus-visible:ring-blue-600
+                "
+              aria-label="Create post"
+              onClick={() => setIsDialogOpen(true)}
+            >
+              <Plus className="w-8 h-8" />
+            </Button>
+            {postDialog}
+          </div>
+          <div className="lg:hidden">
+            <Button
+              size="icon"
+              className="
+                bg-red-500 
+                text-white 
+                rounded-full 
+                shadow-lg 
+                fixed 
+                z-60 
+                bottom-[74px] 
+                left-4
+                lg:hidden 
+                w-14 
+                h-14 
+                flex 
+                items-center 
+                justify-center 
+                border-4 
+                border-background 
+                hover:bg-blue-600
+                focus-visible:ring-2
+                focus-visible:ring-offset-2
+                focus-visible:ring-blue-600
+                "
+              aria-label="Logout"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-8 h-8" />
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
