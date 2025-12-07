@@ -34,6 +34,7 @@ type ProfilePostsTabsProps = {
   onDeletePost: (postId: string) => void;
   onSharePost: (postId: string) => void;
   onToggleLike: (postId: string) => void;
+  currentUserId?: string | null;
 };
 
 export function ProfilePostsTabs({
@@ -43,6 +44,7 @@ export function ProfilePostsTabs({
   onDeletePost,
   onSharePost,
   onToggleLike,
+  currentUserId,
 }: ProfilePostsTabsProps) {
   const [deletePostId, setDeletePostId] = useState<string | null>(null);
 
@@ -76,7 +78,12 @@ export function ProfilePostsTabs({
               posts.map((post) => (
                 <div
                   key={post?.id}
-                  className=" w-full rounded-xl p-4 bg-background border"
+                  className=" w-full rounded-xl p-4 bg-background border cursor-pointer  transition-colors"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      window.location.href = `/post/${post.id}`;
+                    }
+                  }}
                 >
                   <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-2 w-full">
                     <div className="flex items-center gap-3 min-w-0 w-full">
@@ -92,7 +99,8 @@ export function ProfilePostsTabs({
                           {userInfo?.name}
                         </span>
                         <span className="text-muted-foreground text-xs truncate leading-tight max-w-[170px] sm:max-w-[210px]">
-                          @{userInfo?.username} &middot; {timeAgo(post.createdAt)}
+                          @{userInfo?.username} &middot;{" "}
+                          {timeAgo(post.createdAt)}
                         </span>
                       </div>
                     </div>
@@ -104,15 +112,24 @@ export function ProfilePostsTabs({
                         <DropdownMenuContent>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => onSharePost(post.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSharePost(post.id);
+                            }}
                           >
                             Share
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteClick(post.id)}
-                          >
-                            Delete
-                          </DropdownMenuItem>
+                          {currentUserId && post.userId === currentUserId && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(post.id);
+                              }}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

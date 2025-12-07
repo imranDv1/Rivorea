@@ -1,7 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Play, Pause, Volume2, VolumeX, Maximize2, Minimize2 } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import {
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize2,
+  Minimize2,
+} from "lucide-react";
 
 type PostVideoPlayerProps = {
   src: string;
@@ -19,6 +26,10 @@ export function PostVideoPlayer({ src, className = "" }: PostVideoPlayerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [showControls, setShowControls] = useState(true);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -74,15 +85,143 @@ export function PostVideoPlayer({ src, className = "" }: PostVideoPlayerProps) {
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
     document.addEventListener("mozfullscreenchange", handleFullscreenChange);
 
-
     document.addEventListener("MSFullscreenChange", handleFullscreenChange);
 
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
-      document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
-      document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
+      document.removeEventListener(
+        "webkitfullscreenchange",
+        handleFullscreenChange
+      );
+      document.removeEventListener(
+        "mozfullscreenchange",
+        handleFullscreenChange
+      );
+      document.removeEventListener(
+        "MSFullscreenChange",
+        handleFullscreenChange
+      );
     };
+  }, []);
+
+  const togglePlay = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.paused) {
+      video.play();
+      setIsPlaying(true);
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setIsMuted(video.muted);
+  }, []);
+
+  const toggleFullscreen = useCallback(async () => {
+    const container = containerRef.current;
+    if (!container || typeof document === "undefined") return;
+
+    try {
+      const isCurrentlyFullscreen =
+        document.fullscreenElement === container ||
+        // @ts-expect-error - vendor prefixes
+        document.webkitFullscreenElement === container;
+
+      if (!isCurrentlyFullscreen) {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+          // @ts-expect-error - vendor prefixes
+        } else if (container.webkitRequestFullscreen) {
+          // @ts-expect-error - vendor prefixes
+          await container.webkitRequestFullscreen();
+        }
+        setIsFullscreen(true);
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+          // @ts-expect-error - vendor prefixes
+        } else if (document.webkitExitFullscreen) {
+          // @ts-expect-error - vendor prefixes
+          await document.webkitExitFullscreen();
+        }
+        setIsFullscreen(false);
+      }
+    } catch (err) {
+      console.error("Failed to toggle fullscreen", err);
+    }
+  }, []);
+
+  const seekForward = useCallback(
+    (seconds: number = 10) => {
+      const video = videoRef.current;
+      if (!video || !duration) return;
+      const newTime = Math.min(video.currentTime + seconds, duration);
+      video.currentTime = newTime;
+      setCurrentTime(newTime);
+      if (duration) {
+        setProgress((newTime / duration) * 100);
+      }
+    },
+    [duration]
+  );
+
+  const seekBackward = useCallback(
+    (seconds: number = 10) => {
+      const video = videoRef.current;
+      if (!video) return;
+      const newTime = Math.max(video.currentTime - seconds, 0);
+      video.currentTime = newTime;
+      setCurrentTime(newTime);
+      if (duration) {
+        setProgress((newTime / duration) * 100);
+      }
+    },
+    [duration]
+  );
+
+  const increaseVolume = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    setVolume((prevVolume) => {
+      const newVolume = Math.min(prevVolume + 0.1, 1);
+      video.volume = newVolume;
+      if (newVolume > 0 && isMuted) {
+        video.muted = false;
+        setIsMuted(false);
+      }
+      return newVolume;
+    });
+  }, [isMuted]);
+
+  const decreaseVolume = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    setVolume((prevVolume) => {
+      const newVolume = Math.max(prevVolume - 0.1, 0);
+      video.volume = newVolume;
+      if (newVolume === 0) {
+        video.muted = true;
+        setIsMuted(true);
+      }
+      return newVolume;
+    });
+  }, []);
+
+  const resetControlsTimeout = useCallback(() => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 3000);
   }, []);
 
   // Close the speed menu when clicking outside
@@ -103,25 +242,142 @@ export function PostVideoPlayer({ src, className = "" }: PostVideoPlayerProps) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showSpeedMenu]);
 
-  const togglePlay = () => {
+  // Keyboard shortcuts
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input field
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      switch (e.key.toLowerCase()) {
+        case "f":
+          e.preventDefault();
+          toggleFullscreen();
+          resetControlsTimeout();
+          break;
+        case " ":
+          e.preventDefault();
+          togglePlay();
+          resetControlsTimeout();
+          break;
+        case "m":
+          e.preventDefault();
+          toggleMute();
+          resetControlsTimeout();
+          break;
+        case "arrowright":
+        case "end":
+          e.preventDefault();
+          seekForward(10);
+          resetControlsTimeout();
+          break;
+        case "arrowleft":
+        case "home":
+          e.preventDefault();
+          seekBackward(10);
+          resetControlsTimeout();
+          break;
+        case "pageup":
+          e.preventDefault();
+          increaseVolume();
+          resetControlsTimeout();
+          break;
+        case "pagedown":
+          e.preventDefault();
+          decreaseVolume();
+          resetControlsTimeout();
+          break;
+      }
+    };
+
+    container.addEventListener("keydown", handleKeyDown);
+    // Make container focusable for keyboard events
+    container.setAttribute("tabIndex", "0");
+
+    return () => {
+      container.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    toggleFullscreen,
+    resetControlsTimeout,
+    togglePlay,
+    toggleMute,
+    seekForward,
+    seekBackward,
+    increaseVolume,
+    decreaseVolume,
+  ]);
+
+  // Touch controls for mobile
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        touchStartXRef.current = e.touches[0].clientX;
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (touchStartXRef.current === null) return;
+
+      const touchEndX = e.changedTouches[0].clientX;
+      const diff = touchStartXRef.current - touchEndX;
+      const threshold = 50; // Minimum swipe distance
+
+      if (Math.abs(diff) > threshold) {
+        if (diff > 0) {
+          // Swipe left - seek forward
+          seekForward(10);
+        } else {
+          // Swipe right - seek backward
+          seekBackward(10);
+        }
+        resetControlsTimeout();
+      }
+
+      touchStartXRef.current = null;
+    };
+
+    container.addEventListener("touchstart", handleTouchStart, {
+      passive: true,
+    });
+    container.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [seekForward, seekBackward, resetControlsTimeout]);
+
+  // Auto-hide controls - initialize timeout on mount
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setShowControls(false);
+    }, 3000);
+    controlsTimeoutRef.current = timeout;
+
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Sync volume with video element
+  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-
-    if (video.paused) {
-      video.play();
-      setIsPlaying(true);
-    } else {
-      video.pause();
-      setIsPlaying(false);
-    }
-  };
-
-  const toggleMute = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.muted = !video.muted;
-    setIsMuted(video.muted);
-  };
+    video.volume = volume;
+  }, [volume]);
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     const video = videoRef.current;
@@ -135,6 +391,7 @@ export function PostVideoPlayer({ src, className = "" }: PostVideoPlayerProps) {
     video.currentTime = newTime;
     setCurrentTime(newTime);
     setProgress(newProgress * 100);
+    resetControlsTimeout();
   };
 
   const formatTime = (time: number) => {
@@ -150,6 +407,16 @@ export function PostVideoPlayer({ src, className = "" }: PostVideoPlayerProps) {
     <div
       ref={containerRef}
       className={`relative w-full h-full bg-black overflow-hidden group ${className}`}
+      onMouseMove={resetControlsTimeout}
+      onMouseLeave={() => {
+        if (controlsTimeoutRef.current) {
+          clearTimeout(controlsTimeoutRef.current);
+        }
+        controlsTimeoutRef.current = setTimeout(() => {
+          setShowControls(false);
+        }, 3000);
+      }}
+      onTouchStart={resetControlsTimeout}
     >
       <video
         ref={videoRef}
@@ -161,16 +428,29 @@ export function PostVideoPlayer({ src, className = "" }: PostVideoPlayerProps) {
       {/* Play overlay (center) buttons  */}
       <button
         type="button"
-        onClick={togglePlay}
-        className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors"
+        onClick={() => {
+          togglePlay();
+          resetControlsTimeout();
+        }}
+        className={`absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-all ${
+          showControls ? "opacity-100" : "opacity-0"
+        }`}
       >
         <span className="bg-black/60 rounded-full p-3 text-white opacity-80">
-          {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+          {isPlaying ? (
+            <Pause className="w-6 h-6" />
+          ) : (
+            <Play className="w-6 h-6" />
+          )}
         </span>
       </button>
 
       {/* Controls bar */}
-      <div className="absolute bottom-0 left-0 right-0 px-3 pb-2 pt-3 bg-gradient-to-t from-black/70 via-black/40 to-transparent opacity-100 group-hover:opacity-100 transition-opacity">
+      <div
+        className={`absolute bottom-0 left-0 right-0 px-3 pb-2 pt-3 bg-gradient-to-t from-black/70 via-black/40 to-transparent transition-opacity ${
+          showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+      >
         {/* Progress bar */}
         <div
           className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer mb-2"
@@ -186,7 +466,10 @@ export function PostVideoPlayer({ src, className = "" }: PostVideoPlayerProps) {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={togglePlay}
+              onClick={() => {
+                togglePlay();
+                resetControlsTimeout();
+              }}
               className="p-1 rounded-full hover:bg-white/10"
             >
               {isPlaying ? (
@@ -197,7 +480,10 @@ export function PostVideoPlayer({ src, className = "" }: PostVideoPlayerProps) {
             </button>
             <button
               type="button"
-              onClick={toggleMute}
+              onClick={() => {
+                toggleMute();
+                resetControlsTimeout();
+              }}
               className="p-1 rounded-full hover:bg-white/10"
             >
               {isMuted ? (
@@ -251,38 +537,9 @@ export function PostVideoPlayer({ src, className = "" }: PostVideoPlayerProps) {
 
             <button
               type="button"
-              onClick={async () => {
-                const container = containerRef.current;
-                if (!container || typeof document === "undefined") return;
-
-                try {
-                  const isCurrentlyFullscreen =
-                    document.fullscreenElement === container ||
-                    // @ts-expect-error - vendor prefixes
-                    document.webkitFullscreenElement === container;
-
-                  if (!isCurrentlyFullscreen) {
-                    if (container.requestFullscreen) {
-                      await container.requestFullscreen();
-                      // @ts-expect-error - vendor prefixes
-                    } else if (container.webkitRequestFullscreen) {
-                      // @ts-expect-error - vendor prefixes
-                      await container.webkitRequestFullscreen();
-                    }
-                    setIsFullscreen(true);
-                  } else {
-                    if (document.exitFullscreen) {
-                      await document.exitFullscreen();
-                      // @ts-expect-error - vendor prefixes
-                    } else if (document.webkitExitFullscreen) {
-                      // @ts-expect-error - vendor prefixes
-                      await document.webkitExitFullscreen();
-                    }
-                    setIsFullscreen(false);
-                  }
-                } catch (err) {
-                  console.error("Failed to toggle fullscreen", err);
-                }
+              onClick={() => {
+                toggleFullscreen();
+                resetControlsTimeout();
               }}
               className="p-1 rounded-full hover:bg-white/10"
             >
@@ -298,4 +555,3 @@ export function PostVideoPlayer({ src, className = "" }: PostVideoPlayerProps) {
     </div>
   );
 }
-

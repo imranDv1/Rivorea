@@ -6,9 +6,14 @@ import type { UserInfo } from "./profileTypes";
 type ProfileOverviewProps = {
   loading: boolean;
   userInfo: UserInfo;
+  onFollowingClick?: () => void;
 };
 
-export function ProfileOverview({ loading, userInfo }: ProfileOverviewProps) {
+export function ProfileOverview({
+  loading,
+  userInfo,
+  onFollowingClick,
+}: ProfileOverviewProps) {
   return (
     <CardDescription className="mt-15 w-[90%] mx-auto">
       {/* Name, username, badge - only show on mobile (block on <lg, hide on lg+) */}
@@ -54,7 +59,12 @@ export function ProfileOverview({ loading, userInfo }: ProfileOverviewProps) {
           </>
         ) : (
           <>
-            <h1>
+            <h1
+              className={
+                onFollowingClick ? "cursor-pointer hover:underline" : ""
+              }
+              onClick={onFollowingClick}
+            >
               <span className="text-primary mr-1 font-semibold">
                 {userInfo?.followingCount}
               </span>
@@ -72,5 +82,3 @@ export function ProfileOverview({ loading, userInfo }: ProfileOverviewProps) {
     </CardDescription>
   );
 }
-
-

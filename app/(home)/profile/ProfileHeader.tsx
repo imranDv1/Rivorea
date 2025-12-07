@@ -11,6 +11,9 @@ type ProfileHeaderProps = {
   onEditClick: () => void;
   onBannerClick?: () => void;
   onAvatarClick?: () => void;
+  isOwnProfile?: boolean;
+  isFollowing?: boolean;
+  onFollowToggle?: () => void;
 };
 
 export function ProfileHeader({
@@ -19,6 +22,9 @@ export function ProfileHeader({
   onEditClick,
   onBannerClick,
   onAvatarClick,
+  isOwnProfile = true,
+  isFollowing = false,
+  onFollowToggle,
 }: ProfileHeaderProps) {
   return (
     <CardHeader className="relative">
@@ -89,17 +95,26 @@ export function ProfileHeader({
         )}
       </div>
 
-      {/* Edit Profile Button */}
-      <Button
-        variant="outline"
-        className="absolute right-8 -bottom-10 rounded-4xl ring-1 ring-[#333]"
-        disabled={loading}
-        onClick={onEditClick}
-      >
-        Edit Profile
-      </Button>
+      {/* Edit Profile or Follow Button */}
+      {isOwnProfile ? (
+        <Button
+          variant="outline"
+          className="absolute right-8 -bottom-10 rounded-4xl ring-1 ring-[#333]"
+          disabled={loading}
+          onClick={onEditClick}
+        >
+          Edit Profile
+        </Button>
+      ) : (
+        <Button
+          variant={isFollowing ? "outline" : "default"}
+          className="absolute right-8 -bottom-10 rounded-4xl ring-1 ring-[#333]"
+          disabled={loading}
+          onClick={onFollowToggle}
+        >
+          {isFollowing ? "Following" : "Follow"}
+        </Button>
+      )}
     </CardHeader>
   );
 }
-
-

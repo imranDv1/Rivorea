@@ -22,7 +22,8 @@ export async function proxy(request: NextRequest) {
 
   // If user is not logged in, protect these routes
   const protectedRoutes = ["/", "/profile", "/search", "/notification", "/messages", "/settings", "/bookmarks"];
-  if (!session && protectedRoutes.includes(pathname)) {
+  const isPostRoute = pathname.startsWith("/post/");
+  if (!session && (protectedRoutes.includes(pathname) || isPostRoute)) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

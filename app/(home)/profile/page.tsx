@@ -4,6 +4,7 @@ import { useUser } from "@/hooks/user";
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { useNoteNotificationStore } from "@/context/post-create-trigger";
+import { useSearchParams, useRouter } from "next/navigation";
 import type { Post, UserInfo } from "./profileTypes";
 import { ProfileHeader } from "./ProfileHeader";
 import { ProfileOverview } from "./ProfileOverview";
@@ -11,9 +12,21 @@ import { ProfilePostsTabs } from "./ProfilePostsTabs";
 import { EditProfileDialog } from "./EditProfileDialog";
 import { ImagePreviewDialog } from "./ImagePreviewDialog";
 import type { BannerCropperRef } from "@/components/ui/banner-cropper";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import Image from "next/image";
 
 const ProfilePage = () => {
-  const { userId } = useUser();
+  const { userId: currentUserId } = useUser();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const profileUserId = searchParams.get("userId") || currentUserId; // Use URL param or current user
+  const isOwnProfile = profileUserId === currentUserId;
 
   const [userInfo, setUserInfo] = useState<UserInfo>(null);
   const [posts, setPosts] = useState<Post[] | null>(null);
@@ -28,8 +41,8 @@ const ProfilePage = () => {
   useEffect(() => {
     async function FetchPosts() {
       try {
-        // When userId is not available, don't try to fetch posts
-        if (!userId) {
+        // When profileUserId is not available, don't try to fetch posts
+        if (!profileUserId) {
           setPosts(null);
           return;
         }
@@ -37,18 +50,18 @@ const ProfilePage = () => {
         const response = await fetch("/api/post/get", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId }),
+          body: JSON.stringify({ userId: profileUserId }),
         });
 
         const data = await response.json();
         setPosts(data.posts);
-      } catch (_err) {
+      } catch {
         toast.error("error getting posts");
       }
     }
 
     FetchPosts();
-  }, [userId, refreshSignal]);
+  }, [profileUserId, refreshSignal]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -77,12 +90,127 @@ const ProfilePage = () => {
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>("");
 
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followingUsers, setFollowingUsers] = useState<
+    Array<{
+      id: string;
+      name: string;
+      username: string;
+      image: string | null;
+      bio: string | null;
+    }>
+  >([]);
+  const [showFollowingList, setShowFollowingList] = useState(false);
+
+  useEffect(() => {
+    if (!profileUserId) {
+      setUserInfo(null);
+      setLoading(false);
+      return;
+    }
+
+    const fetchUserInfo = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch("/api/user-info", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: profileUserId }),
+        });
+
+        const data = await response.json();
+        setUserInfo(data.userInfo);
+
+        // Check if current user is following this profile user
+        if (currentUserId && profileUserId !== currentUserId) {
+          const followCheckResponse = await fetch("/api/user/following", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: currentUserId }),
+          });
+          if (followCheckResponse.ok) {
+            const followCheckData = await followCheckResponse.json();
+            const isFollowingUser =
+              followCheckData.following?.some(
+                (u: { id: string }) => u.id === profileUserId
+              ) || false;
+            setIsFollowing(isFollowingUser);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch user info:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserInfo();
+  }, [profileUserId, currentUserId]);
+
+  const handleFollowToggle = async () => {
+    if (!currentUserId || !profileUserId || isOwnProfile) return;
+
+    const wasFollowing = isFollowing;
+    setIsFollowing(!wasFollowing); // Optimistic update
+
+    try {
+      const response = await fetch("/api/user/follow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: currentUserId,
+          targetUserId: profileUserId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to toggle follow");
+      }
+
+      const data = await response.json();
+      setIsFollowing(data.isFollowing);
+
+      // Update user info with new follower count
+      if (userInfo) {
+        setUserInfo({
+          ...userInfo,
+          followersCount: data.followersCount,
+        });
+      }
+    } catch (error) {
+      console.error("Error toggling follow:", error);
+      setIsFollowing(wasFollowing); // Rollback on error
+      toast.error("Failed to update follow status");
+    }
+  };
+
+  const fetchFollowingUsers = async () => {
+    if (!profileUserId) return;
+
+    try {
+      const response = await fetch("/api/user/following", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: profileUserId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFollowingUsers(data.following || []);
+        setShowFollowingList(true);
+      }
+    } catch (error) {
+      console.error("Error fetching following users:", error);
+      toast.error("Failed to load following list");
+    }
+  };
+
   const handleDeletePost = async (postId: string) => {
-    if (!userId) return;
+    if (!currentUserId || !isOwnProfile) return;
 
     try {
       const response = await fetch(
-        `/api/post?postId=${encodeURIComponent(postId)}&userId=${encodeURIComponent(userId)}`,
+        `/api/post?postId=${encodeURIComponent(postId)}&userId=${encodeURIComponent(currentUserId)}`,
         {
           method: "DELETE",
         }
@@ -127,7 +255,7 @@ const ProfilePage = () => {
   };
 
   const handleToggleLike = async (postId: string) => {
-    if (!userId) {
+    if (!currentUserId) {
       toast.error("You must be logged in to like posts");
       return;
     }
@@ -156,7 +284,7 @@ const ProfilePage = () => {
       const response = await fetch("/api/like", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, postId }),
+        body: JSON.stringify({ userId: currentUserId, postId }),
       });
 
       if (!response.ok) {
@@ -224,34 +352,6 @@ const ProfilePage = () => {
     }
   };
 
-  useEffect(() => {
-    if (!userId) {
-      setUserInfo(null);
-      setLoading(false);
-      return;
-    }
-
-    const fetchUserInfo = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch("/api/user-info", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId }),
-        });
-
-        const data = await response.json();
-        setUserInfo(data.userInfo);
-      } catch (error) {
-        console.error("Failed to fetch user info:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserInfo();
-  }, [userId]);
-
   // Initialize form data when userInfo changes
   useEffect(() => {
     if (userInfo) {
@@ -317,12 +417,12 @@ const ProfilePage = () => {
     type: "profile" | "banner",
     oldImageUrl?: string | null
   ): Promise<string | null> => {
-    if (!userId) return null;
+    if (!currentUserId) return null;
 
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("userId", userId);
+      formData.append("userId", currentUserId);
       formData.append("type", type);
       if (oldImageUrl) {
         formData.append("oldImageUrl", oldImageUrl);
@@ -348,7 +448,7 @@ const ProfilePage = () => {
 
   // Handle profile update
   const handleSaveProfile = async () => {
-    if (!userId) return;
+    if (!currentUserId) return;
 
     setIsSaving(true);
     try {
@@ -379,7 +479,7 @@ const ProfilePage = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId,
+          userId: currentUserId,
           name: formData.name,
           bio: formData.bio,
           username: formData.username,
@@ -629,19 +729,26 @@ const ProfilePage = () => {
           userInfo={userInfo}
           onEditClick={() => setIsEditDialogOpen(true)}
           onBannerClick={() => {
-            if (userInfo?.bannerImage) {
+            if (userInfo?.bannerImage && isOwnProfile) {
               setPreviewSrc(userInfo.bannerImage);
               setPreviewTitle("Banner image");
             }
           }}
           onAvatarClick={() => {
-            if (userInfo?.image) {
+            if (userInfo?.image && isOwnProfile) {
               setPreviewSrc(userInfo.image);
               setPreviewTitle("Profile image");
             }
           }}
+          isOwnProfile={isOwnProfile}
+          isFollowing={isFollowing}
+          onFollowToggle={handleFollowToggle}
         />
-        <ProfileOverview loading={loading} userInfo={userInfo} />
+        <ProfileOverview
+          loading={loading}
+          userInfo={userInfo}
+          onFollowingClick={fetchFollowingUsers}
+        />
         <ProfilePostsTabs
           loading={loading}
           posts={posts}
@@ -649,6 +756,7 @@ const ProfilePage = () => {
           onDeletePost={handleDeletePost}
           onSharePost={handleSharePost}
           onToggleLike={handleToggleLike}
+          currentUserId={currentUserId}
         />
       </Card>
 
@@ -694,6 +802,53 @@ const ProfilePage = () => {
           }
         }}
       />
+      <Dialog open={showFollowingList} onOpenChange={setShowFollowingList}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Following</DialogTitle>
+            <DialogDescription>
+              Users that {userInfo?.name} follows
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            {followingUsers.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">
+                Not following anyone yet
+              </p>
+            ) : (
+              followingUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center gap-3 p-2 hover:bg-accent rounded-lg cursor-pointer transition-colors"
+                  onClick={() => {
+                    router.push(`/profile?userId=${user.id}`);
+                    setShowFollowingList(false);
+                  }}
+                >
+                  <Image
+                    src={user.image || "/default.png"}
+                    alt={user.name}
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 rounded-full"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{user.name}</p>
+                    <p className="text-sm text-muted-foreground truncate">
+                      @{user.username}
+                    </p>
+                    {user.bio && (
+                      <p className="text-sm text-muted-foreground truncate mt-1">
+                        {user.bio}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
