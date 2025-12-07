@@ -737,7 +737,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
                 rounded-full 
                 shadow-lg 
                 fixed 
-                z-[60] 
+                z-1 
                 bottom-[74px] 
                 right-4
                 lg:hidden 
@@ -769,7 +769,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
                 rounded-full 
                 shadow-lg 
                 fixed 
-                z-60 
+                z-1 
                 bottom-[74px] 
                 left-4
                 lg:hidden 
