@@ -522,7 +522,7 @@ export default function Home() {
                         {post.mediaUrl.slice(0, 4).map((url, i) => (
                           <div
                             key={i}
-                            className="relative w-full h-55 lg:h-115  rounded-lg overflow-hidden"
+        
                           >
                             {isVideo(url) ? (
                               <video src={url} controls />

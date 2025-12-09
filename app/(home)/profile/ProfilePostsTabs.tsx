@@ -27,6 +27,7 @@ import type { Post, UserInfo } from "./profileTypes";
 import { formatHashtags, isVideo, timeAgo } from "./profileUtils";
 import { PostVideoPlayer } from "./PostVideoPlayer";
 import { HiCheckBadge } from "react-icons/hi2";
+import { cn } from "@/lib/utils";
 
 type ProfilePostsTabsProps = {
   loading: boolean;
@@ -145,7 +146,9 @@ export function ProfilePostsTabs({
                  
                   >
                     {post.mediaUrl.length === 1 && (
-                      <div className="relative w-full h-55 lg:h-115 rounded-lg overflow-hidden">
+                      <div 
+                        className={cn("relative w-full lg:h-115  rounded-lg overflow-hidden" , isVideo(post.mediaUrl[0])  ? "h-50 lg:h-80" : " lg:h-150 h-94")}
+                      >
                         {isVideo(post.mediaUrl[0]) ? (
                           <video
                             src={post.mediaUrl[0]}
