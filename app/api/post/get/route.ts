@@ -103,6 +103,7 @@ export async function GET(req: Request) {
             username: true,
             displayUsername: true,
             image: true,
+            badge: true
           },
         },
         _count: {
@@ -143,6 +144,7 @@ export async function GET(req: Request) {
           name: user.name,
           username: user.username || user.displayUsername || "unknown",
           image: user.image,
+          badge:user.badge
         },
         likedByCurrentUser: userId && Array.isArray(likes) && likes.length > 0,
       };

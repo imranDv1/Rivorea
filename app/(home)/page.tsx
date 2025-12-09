@@ -26,6 +26,7 @@ import { PostVideoPlayer } from "./profile/PostVideoPlayer";
 import { formatHashtags, isVideo, timeAgo } from "./profile/profileUtils";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { HiCheckBadge } from "react-icons/hi2";
 
 type PostWithUser = {
   id: string;
@@ -39,6 +40,7 @@ type PostWithUser = {
     name: string;
     username: string;
     image: string | null;
+    badge: string;
   };
   _count: {
     likes: number;
@@ -94,7 +96,7 @@ export default function Home() {
 
         const response = await fetch(`/api/post/get?${params.toString()}`);
         const data = await response.json();
-
+        console.log(`user badge ${data.badge}`);
         if (append) {
           setPosts((prev) => {
             // Deduplicate posts by id to prevent duplicate keys
@@ -402,26 +404,34 @@ export default function Home() {
                   key={post.id}
                   data-post-id={post.id}
                   className="w-full rounded-xl p-4 bg-background border cursor-pointer transition-colors"
-                  onClick={() => router.push(`/post/${post.id}`)}
                 >
                   <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-2 w-full">
-                    <div
-                      className="flex items-center gap-3 min-w-0 w-full cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/profile?userId=${post.user.id}`);
-                      }}
-                    >
+                    <div className="flex items-center gap-3 min-w-0 w-full cursor-pointer hover:opacity-80 transition-opacity">
                       <Image
                         src={post.user.image || "/default.png"}
                         alt="Profile"
                         width={32}
                         height={32}
                         className="w-8 h-8 rounded-full shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/profile?userId=${post.user.id}`);
+                        }}
                       />
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-semibold truncate leading-tight max-w-[120px] sm:max-w-[170px]">
+                      <div
+                        className="flex flex-col min-w-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/profile?userId=${post.user.id}`);
+                        }}
+                      >
+                        <span className=" flex items-center  gap-1 font-semibold truncate leading-tight max-w-[120px] sm:max-w-[170px]">
                           {post.user.name}
+                          {post.user.badge === "blue" ? (
+                            <HiCheckBadge className="text-blue-500 mt-1" />
+                          ) : post.user.badge === "gold" ? (
+                            <HiCheckBadge className="text-yellow-400 mt-1" />
+                          ) : null}
                         </span>
                         <span className="text-muted-foreground text-xs truncate leading-tight max-w-[170px] sm:max-w-[210px]">
                           @{post.user.username} &middot;{" "}
@@ -480,18 +490,19 @@ export default function Home() {
 
                   <div className="w-full">
                     {post.mediaUrl.length === 1 && (
-                      <div className="relative w-full h-104 rounded-lg overflow-hidden">
+                      <div className="relative w-full h-55 lg:h-115  rounded-lg overflow-hidden">
                         {isVideo(post.mediaUrl[0]) ? (
-                          <PostVideoPlayer
+                          <video
                             src={post.mediaUrl[0]}
-                            className="object-top"
-                          />
+                            controls
+                            className="w-full h-full "
+                          ></video>
                         ) : (
                           <Image
                             src={post.mediaUrl[0]}
                             alt="post media"
                             fill
-                            className="object-cover object-top"
+                            className="object-cover object-center w-full h-max"
                           />
                         )}
                       </div>
@@ -510,16 +521,16 @@ export default function Home() {
                         {post.mediaUrl.slice(0, 4).map((url, i) => (
                           <div
                             key={i}
-                            className="relative w-full h-40 rounded-lg overflow-hidden"
+                            className="relative w-full h-55 lg:h-115  rounded-lg overflow-hidden"
                           >
                             {isVideo(url) ? (
-                              <PostVideoPlayer src={url} />
+                              <video src={url} controls />
                             ) : (
                               <Image
                                 src={url}
                                 alt={`post media ${i}`}
                                 fill
-                                className="object-cover"
+                                className="object-cover object-center"
                               />
                             )}
                           </div>
@@ -540,7 +551,8 @@ export default function Home() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
+                      onClick={() => router.push(`/post/${post.id}`)}
+                      className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto cursor-pointer"
                     >
                       <MessageCircle className="size-4" />
                       {post._count.comments}
@@ -548,7 +560,7 @@ export default function Home() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
+                      className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleToggleLike(post.id);
@@ -597,7 +609,6 @@ export default function Home() {
                   key={post.id}
                   data-post-id={post.id}
                   className="w-full rounded-xl p-4 bg-background border cursor-pointer transition-colors"
-                  onClick={() => router.push(`/post/${post.id}`)}
                 >
                   <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-2 w-full">
                     <div

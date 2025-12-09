@@ -32,10 +32,11 @@ export async function GET(
         user: {
           select: {
             id: true,
-            name: true,
+            name: true, 
             username: true,
             displayUsername: true,
             image: true,
+            badge:true
           },
         },
         _count: {
@@ -65,6 +66,7 @@ export async function GET(
           name: user.name,
           username: user.username || user.displayUsername || "unknown",
           image: user.image,
+          badge: user.badge
         },
         likes: comment._count.likes,
         likedByCurrentUser: userId && Array.isArray(likes) && likes.length > 0,

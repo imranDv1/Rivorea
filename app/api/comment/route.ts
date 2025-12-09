@@ -34,6 +34,7 @@ export async function POST(req: Request) {
             username: true,
             displayUsername: true,
             image: true,
+            badge: true 
           },
         },
         _count: {
@@ -53,6 +54,7 @@ export async function POST(req: Request) {
         name: comment.user.name,
         username: comment.user.username || comment.user.displayUsername || "unknown",
         image: comment.user.image,
+        badge: comment.user.badge
       },
       createdAt: comment.createdAt.toISOString(),
       updatedAt: comment.updatedAt.toISOString(),

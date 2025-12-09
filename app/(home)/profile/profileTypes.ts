@@ -20,6 +20,7 @@ export type Post = {
   content: string | null;
   mediaUrl: string[];
   userId: string;
+  badge : string
   createdAt: string;
   updatedAt: string;
   _count: {

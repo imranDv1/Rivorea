@@ -18,6 +18,7 @@ type PostWithUser = {
     name: string;
     username: string;
     image: string | null;
+    badge: string
   };
   _count: {
     likes: number;

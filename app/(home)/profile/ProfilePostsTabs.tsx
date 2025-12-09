@@ -26,6 +26,7 @@ import { PostSkeleton } from "./profileSkeletons";
 import type { Post, UserInfo } from "./profileTypes";
 import { formatHashtags, isVideo, timeAgo } from "./profileUtils";
 import { PostVideoPlayer } from "./PostVideoPlayer";
+import { HiCheckBadge } from "react-icons/hi2";
 
 type ProfilePostsTabsProps = {
   loading: boolean;
@@ -79,11 +80,8 @@ export function ProfilePostsTabs({
                 <div
                   key={post?.id}
                   className=" w-full rounded-xl p-4 bg-background border cursor-pointer  transition-colors"
-                  onClick={() => {
-                    if (typeof window !== "undefined") {
-                      window.location.href = `/post/${post.id}`;
-                    }
-                  }}
+                 
+                  
                 >
                   <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-2 w-full">
                     <div className="flex items-center gap-3 min-w-0 w-full">
@@ -95,8 +93,13 @@ export function ProfilePostsTabs({
                         className="w-8 h-8 rounded-full shrink-0"
                       />
                       <div className="flex flex-col min-w-0">
-                        <span className="font-semibold truncate leading-tight max-w-[120px] sm:max-w-[170px]">
+                        <span className="font-semibold flex items-center gap-1 truncate leading-tight max-w-[120px] sm:max-w-[170px]">
                           {userInfo?.name}
+                          {userInfo?.badge === "blue" ? (
+                            <HiCheckBadge className="text-blue-500 mt-1" />
+                          ) : userInfo?.badge === "gold" ? (
+                            <HiCheckBadge className="text-yellow-400 mt-1" />
+                          ) : null}
                         </span>
                         <span className="text-muted-foreground text-xs truncate leading-tight max-w-[170px] sm:max-w-[210px]">
                           @{userInfo?.username} &middot;{" "}
@@ -104,7 +107,7 @@ export function ProfilePostsTabs({
                         </span>
                       </div>
                     </div>
-                    <div className="ml-2 shrink-0">
+                    <div className="ml-2 shrink-0" >
                       <DropdownMenu>
                         <DropdownMenuTrigger className="cursor-pointer">
                           <BsThreeDots />
@@ -138,20 +141,24 @@ export function ProfilePostsTabs({
                     {formatHashtags(post.content || "")}
                   </p>
 
-                  <div className="w-full">
+                  <div className="w-full" 
+                 
+                  >
                     {post.mediaUrl.length === 1 && (
-                      <div className="relative w-full h-104 rounded-lg overflow-hidden">
+                      <div className="relative w-full h-55 lg:h-115 rounded-lg overflow-hidden">
                         {isVideo(post.mediaUrl[0]) ? (
-                          <PostVideoPlayer
+                          <video
                             src={post.mediaUrl[0]}
-                            className="object-top"
+                            className=" w-full h-full"
+                            controls
                           />
                         ) : (
                           <Image
                             src={post.mediaUrl[0]}
                             alt="post media"
                             fill
-                            className="object-cover object-top"
+                            className="object-cover object-center"
+                            
                           />
                         )}
                       </div>
@@ -170,16 +177,16 @@ export function ProfilePostsTabs({
                         {post.mediaUrl.slice(0, 4).map((url, i) => (
                           <div
                             key={i}
-                            className="relative w-full h-40 rounded-lg overflow-hidden"
+                            className="relative w-full  h-55 lg:h-115 rounded-lg overflow-hidden"
                           >
                             {isVideo(url) ? (
-                              <PostVideoPlayer src={url} />
+                              <video controls className="w-full h-full" src={url} />
                             ) : (
                               <Image
                                 src={url}
                                 alt={`post media ${i}`}
                                 fill
-                                className="object-cover"
+                                className="object-cover object-center"
                               />
                             )}
                           </div>
@@ -200,7 +207,12 @@ export function ProfilePostsTabs({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
+                      className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto cursor-pointer"
+                        onClick={() => {
+                    if (typeof window !== "undefined") {
+                      window.location.href = `/post/${post.id}`;
+                    }
+                  }}
                     >
                       <MessageCircle className="size-4" />
                       {post._count.comments}
@@ -208,7 +220,7 @@ export function ProfilePostsTabs({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
+                      className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto cursor-pointer"
                       onClick={() => onToggleLike(post.id)}
                     >
                       <Heart

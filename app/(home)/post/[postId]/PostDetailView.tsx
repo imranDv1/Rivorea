@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUser } from "@/hooks/user";
+import { HiCheckBadge } from "react-icons/hi2";
 
 type PostWithUser = {
   id: string;
@@ -42,6 +43,7 @@ type PostWithUser = {
     name: string;
     username: string;
     image: string | null;
+    badge: string;
   };
   _count: {
     likes: number;
@@ -61,6 +63,7 @@ type Comment = {
     name: string;
     username: string;
     image: string | null;
+    badge: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -110,6 +113,7 @@ export function PostDetailView({ post, currentUserId }: PostDetailViewProps) {
 
       const data = await response.json();
       setComments(data.comments || []);
+
     } catch (error) {
       console.error("Error fetching comments:", error);
       toast.error("Failed to load comments");
@@ -233,7 +237,6 @@ export function PostDetailView({ post, currentUserId }: PostDetailViewProps) {
       setEditCommentContent("");
       toast.success("Comment updated");
     } catch (error) {
-      console.error("Error updating comment:", error);
       toast.error("Failed to update comment");
     }
   };
@@ -275,7 +278,6 @@ export function PostDetailView({ post, currentUserId }: PostDetailViewProps) {
 
       toast.success("Comment deleted");
     } catch (error) {
-      console.error("Error deleting comment:", error);
       toast.error("Failed to delete comment");
     }
   };
@@ -532,12 +534,17 @@ export function PostDetailView({ post, currentUserId }: PostDetailViewProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span
-                    className="font-semibold cursor-pointer hover:underline"
+                    className="font-semibold cursor-pointer hover:underline flex items-center gap-1"
                     onClick={() =>
                       router.push(`/profile?userId=${currentPost.user.id}`)
                     }
                   >
                     {currentPost.user.name}
+                    {currentPost.user.badge === "blue" ? (
+                      <HiCheckBadge className="text-blue-500 mt-1" />
+                    ) : currentPost.user.badge === "gold" ? (
+                      <HiCheckBadge className="text-yellow-400 mt-1" />
+                    ) : null}
                   </span>
                   <span className="text-muted-foreground text-sm">
                     @{currentPost.user.username}
@@ -570,7 +577,7 @@ export function PostDetailView({ post, currentUserId }: PostDetailViewProps) {
                         }
                       >
                         {isVideo(currentPost.mediaUrl[0]) ? (
-                          <PostVideoPlayer src={currentPost.mediaUrl[0]} />
+                          <video controls src={currentPost.mediaUrl[0]} />
                         ) : (
                           <div className="relative w-full aspect-video">
                             <Image
@@ -642,7 +649,7 @@ export function PostDetailView({ post, currentUserId }: PostDetailViewProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto"
+                    className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleToggleLike(currentPost.id);
@@ -677,7 +684,7 @@ export function PostDetailView({ post, currentUserId }: PostDetailViewProps) {
             {currentUserId && (
               <div className="flex gap-3 pb-4 border-b">
                 <Image
-                  src={user?.image || "/default.png"}
+                  src={user?.image || "/defualt.jpg"}
                   alt="Your avatar"
                   width={40}
                   height={40}
@@ -727,7 +734,7 @@ export function PostDetailView({ post, currentUserId }: PostDetailViewProps) {
                   className="flex gap-3 pb-4 border-b last:border-0"
                 >
                   <Image
-                    src={comment.user.image || "/default.png"}
+                    src={comment.user.image || "/defualt.jpg"}
                     alt={comment.user.name}
                     width={40}
                     height={40}
@@ -740,12 +747,17 @@ export function PostDetailView({ post, currentUserId }: PostDetailViewProps) {
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <span
-                          className="font-semibold text-sm cursor-pointer hover:underline"
+                          className="font-semibold text-sm cursor-pointer hover:underline flex items-center gap-1"
                           onClick={() =>
                             router.push(`/profile?userId=${comment.user.id}`)
                           }
                         >
                           {comment.user.name}
+                          {comment.user.badge === "blue" ? (
+                            <HiCheckBadge className="text-blue-500 mt-1" />
+                          ) : comment.user.badge === "gold" ? (
+                            <HiCheckBadge className="text-yellow-400 mt-1" />
+                          ) : null}
                         </span>
                         <span className="text-muted-foreground text-xs">
                           @{comment.user.username}
@@ -825,7 +837,7 @@ export function PostDetailView({ post, currentUserId }: PostDetailViewProps) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-auto w-auto p-0 hover:text-primary"
+                        className="h-auto w-auto p-0 hover:text-primary cursor-pointer"
                         onClick={() => handleToggleCommentLike(comment.id)}
                       >
                         <Heart
