@@ -96,9 +96,9 @@ export function ProfilePostsTabs({
                         <span className="font-semibold flex items-center gap-1 truncate leading-tight max-w-[120px] sm:max-w-[170px]">
                           {userInfo?.name}
                           {userInfo?.badge === "blue" ? (
-                            <HiCheckBadge className="text-blue-500 mt-1" />
+                            <HiCheckBadge className="text-blue-500 lg:mt-1" />
                           ) : userInfo?.badge === "gold" ? (
-                            <HiCheckBadge className="text-yellow-400 mt-1" />
+                            <HiCheckBadge className="text-yellow-400 lg:mt-1" />
                           ) : null}
                         </span>
                         <span className="text-muted-foreground text-xs truncate leading-tight max-w-[170px] sm:max-w-[210px]">

@@ -428,9 +428,9 @@ export default function Home() {
                         <span className=" flex items-center  gap-1 font-semibold truncate leading-tight max-w-[120px] sm:max-w-[170px]">
                           {post.user.name}
                           {post.user.badge === "blue" ? (
-                            <HiCheckBadge className="text-blue-500 mt-1" />
+                            <HiCheckBadge className="text-blue-500 lg:mt-1" />
                           ) : post.user.badge === "gold" ? (
-                            <HiCheckBadge className="text-yellow-400 mt-1" />
+                            <HiCheckBadge className="text-yellow-400 lg:mt-1" />
                           ) : null}
                         </span>
                         <span className="text-muted-foreground text-xs truncate leading-tight max-w-[170px] sm:max-w-[210px]">

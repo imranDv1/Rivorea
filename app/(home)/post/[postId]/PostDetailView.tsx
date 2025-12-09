@@ -541,9 +541,9 @@ export function PostDetailView({ post, currentUserId }: PostDetailViewProps) {
                   >
                     {currentPost.user.name}
                     {currentPost.user.badge === "blue" ? (
-                      <HiCheckBadge className="text-blue-500 mt-1" />
+                      <HiCheckBadge className="text-blue-500 lg:mt-1" />
                     ) : currentPost.user.badge === "gold" ? (
-                      <HiCheckBadge className="text-yellow-400 mt-1" />
+                      <HiCheckBadge className="text-yellow-400 lg:mt-1" />
                     ) : null}
                   </span>
                   <span className="text-muted-foreground text-sm">
@@ -754,9 +754,9 @@ export function PostDetailView({ post, currentUserId }: PostDetailViewProps) {
                         >
                           {comment.user.name}
                           {comment.user.badge === "blue" ? (
-                            <HiCheckBadge className="text-blue-500 mt-1" />
+                            <HiCheckBadge className="text-blue-500 lg:mt-1" />
                           ) : comment.user.badge === "gold" ? (
-                            <HiCheckBadge className="text-yellow-400 mt-1" />
+                            <HiCheckBadge className="text-yellow-400 lg:mt-1" />
                           ) : null}
                         </span>
                         <span className="text-muted-foreground text-xs">
