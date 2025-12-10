@@ -126,19 +126,19 @@ const mobileNavBar = [
     id: 3,
     name: "Search",
     icon: Search,
-    href: "/search",
+    href: "/",
   },
   {
     id: 4,
     name: "Notification",
     icon: Bell,
-    href: "/notification",
+    href: "/",
   },
   {
     id: 5,
     name: "Messages",
     icon: Mail,
-    href: "/messages",
+    href: "/",
   },
 ];
 

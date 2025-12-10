@@ -70,7 +70,6 @@ export default function Home() {
 
   const fetchPosts = useCallback(
     async (pageToken: string | null = null, append: boolean = false) => {
-      // Prevent concurrent fetches
       if (isFetchingRef.current) {
         return;
       }
@@ -129,7 +128,6 @@ export default function Home() {
   );
 
   useEffect(() => {
-    // Reset state when feed type changes
     setPosts([]);
     setNextPageToken(null);
     setHasMore(true);
@@ -137,7 +135,6 @@ export default function Home() {
     fetchPosts();
   }, [fetchPosts]);
 
-  // Track views when posts are visible
   const trackView = useCallback(
     async (postId: string) => {
       if (!userId || viewedPostsRef.current.has(postId)) {
@@ -145,8 +142,6 @@ export default function Home() {
       }
 
       viewedPostsRef.current.add(postId);
-
-      // Optimistic update
       setPosts((prev) =>
         prev.map((post) =>
           post.id === postId
@@ -170,7 +165,6 @@ export default function Home() {
 
         if (response.ok) {
           const data = await response.json();
-          // Update view count with server response
           setPosts((prev) =>
             prev.map((post) =>
               post.id === postId
@@ -185,7 +179,6 @@ export default function Home() {
             )
           );
         } else {
-          // Rollback on error
           setPosts((prev) =>
             prev.map((post) =>
               post.id === postId
