@@ -206,7 +206,7 @@ export function ProfilePostsTabs({
                                 src={url}
                               />
                             ) : (
-                                <Dialog >
+                              <Dialog>
                                 <DialogTrigger>
                                   <Image
                                     src={url}
@@ -222,7 +222,7 @@ export function ProfilePostsTabs({
                                   <Image
                                     src={url}
                                     alt={`post media ${i}`}
-                                    width={800} 
+                                    width={800}
                                     height={800}
                                     className="w-full h-full "
                                   />

@@ -96,9 +96,7 @@ export default function Home() {
           params.append("following", "true");
         }
 
-        const response = await fetch(`/api/post/get?${params.toString()}`, {
-          cache: "force-cache",
-        });
+        const response = await fetch(`/api/post/get?${params.toString()}`);
         const data = await response.json();
         console.log(`user badge ${data.badge}`);
         if (append) {
