@@ -204,7 +204,8 @@ const Layout = ({ children }: { children: ReactNode }) => {
     console.log("user not found");
     // Optionally redirect to login or show a message if user is not found after loading
 
-    return null; // Return null to prevent rendering the rest of the layout
+    window.location.reload()
+
   }
 
   function handleLogout() {

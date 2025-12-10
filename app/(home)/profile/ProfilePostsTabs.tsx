@@ -21,6 +21,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { PostSkeleton } from "./profileSkeletons";
 import type { Post, UserInfo } from "./profileTypes";
@@ -81,8 +82,6 @@ export function ProfilePostsTabs({
                 <div
                   key={post?.id}
                   className=" w-full rounded-xl p-4 bg-background border cursor-pointer  transition-colors"
-                 
-                  
                 >
                   <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-2 w-full">
                     <div className="flex items-center gap-3 min-w-0 w-full">
@@ -108,7 +107,7 @@ export function ProfilePostsTabs({
                         </span>
                       </div>
                     </div>
-                    <div className="ml-2 shrink-0" >
+                    <div className="ml-2 shrink-0">
                       <DropdownMenu>
                         <DropdownMenuTrigger className="cursor-pointer">
                           <BsThreeDots />
@@ -142,12 +141,15 @@ export function ProfilePostsTabs({
                     {formatHashtags(post.content || "")}
                   </p>
 
-                  <div className="w-full" 
-                 
-                  >
+                  <div className="w-full">
                     {post.mediaUrl.length === 1 && (
-                      <div 
-                        className={cn("relative w-full lg:h-115  rounded-lg overflow-hidden" , isVideo(post.mediaUrl[0])  ? "h-50 lg:h-80" : " lg:h-150 h-94")}
+                      <div
+                        className={cn(
+                          "relative w-full lg:h-115  rounded-lg overflow-hidden",
+                          isVideo(post.mediaUrl[0])
+                            ? "h-50 lg:h-80"
+                            : " lg:h-150 h-94"
+                        )}
                       >
                         {isVideo(post.mediaUrl[0]) ? (
                           <video
@@ -156,13 +158,28 @@ export function ProfilePostsTabs({
                             controls
                           />
                         ) : (
-                          <Image
-                            src={post.mediaUrl[0]}
-                            alt="post media"
-                            fill
-                            className="object-cover object-center"
-                            
-                          />
+                          <Dialog>
+                            <DialogTrigger>
+                              <Image
+                                src={post.mediaUrl[0]}
+                                alt="post media"
+                                fill
+                                className="object-cover object-center"
+                              />
+                            </DialogTrigger>
+                            <DialogHeader>
+                              <DialogTitle>{post.content}</DialogTitle>
+                            </DialogHeader>
+                            <DialogContent className="w-full absolute top-80">
+                              <Image
+                                src={post.mediaUrl[0]}
+                                alt={`post media`}
+                                width={800}
+                                height={800}
+                                className="w-full h-full "
+                              />
+                            </DialogContent>
+                          </Dialog>
                         )}
                       </div>
                     )}
@@ -180,17 +197,37 @@ export function ProfilePostsTabs({
                         {post.mediaUrl.slice(0, 4).map((url, i) => (
                           <div
                             key={i}
-                            className="relative w-full  h-55 lg:h-115 rounded-lg overflow-hidden"
+                            className="relative w-full  h-55 lg:h-80 rounded-lg overflow-hidden"
                           >
                             {isVideo(url) ? (
-                              <video controls className="w-full h-full" src={url} />
-                            ) : (
-                              <Image
+                              <video
+                                controls
+                                className="w-full h-full"
                                 src={url}
-                                alt={`post media ${i}`}
-                                fill
-                                className="object-cover object-center"
                               />
+                            ) : (
+                                <Dialog >
+                                <DialogTrigger>
+                                  <Image
+                                    src={url}
+                                    alt={`post media ${i}`}
+                                    fill
+                                    className="object-cover object-center"
+                                  />
+                                </DialogTrigger>
+                                <DialogHeader>
+                                  <DialogTitle>{post.content}</DialogTitle>
+                                </DialogHeader>
+                                <DialogContent className="w-full absolute top-80">
+                                  <Image
+                                    src={url}
+                                    alt={`post media ${i}`}
+                                    width={800} 
+                                    height={800}
+                                    className="w-full h-full "
+                                  />
+                                </DialogContent>
+                              </Dialog>
                             )}
                           </div>
                         ))}
@@ -211,11 +248,11 @@ export function ProfilePostsTabs({
                       variant="ghost"
                       size="icon"
                       className="flex items-center gap-1 hover:text-primary p-0 h-auto w-auto cursor-pointer"
-                        onClick={() => {
-                    if (typeof window !== "undefined") {
-                      window.location.href = `/post/${post.id}`;
-                    }
-                  }}
+                      onClick={() => {
+                        if (typeof window !== "undefined") {
+                          window.location.href = `/post/${post.id}`;
+                        }
+                      }}
                     >
                       <MessageCircle className="size-4" />
                       {post._count.comments}

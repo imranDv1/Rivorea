@@ -28,6 +28,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { HiCheckBadge } from "react-icons/hi2";
 import { cn } from "@/lib/utils";
+import { DialogTrigger } from "@radix-ui/react-dialog";
 
 type PostWithUser = {
   id: string;
@@ -83,7 +84,7 @@ export default function Home() {
 
       try {
         const params = new URLSearchParams({
-          limit: "20",
+          limit: "10",
         });
         if (pageToken) {
           params.append("pageToken", pageToken);
@@ -95,7 +96,9 @@ export default function Home() {
           params.append("following", "true");
         }
 
-        const response = await fetch(`/api/post/get?${params.toString()}`);
+        const response = await fetch(`/api/post/get?${params.toString()}`, {
+          cache: "force-cache",
+        });
         const data = await response.json();
         console.log(`user badge ${data.badge}`);
         if (append) {
@@ -491,7 +494,14 @@ export default function Home() {
 
                   <div className="w-full">
                     {post.mediaUrl.length === 1 && (
-                      <div className={cn("relative w-full lg:h-115  rounded-lg overflow-hidden" , isVideo(post.mediaUrl[0])  ? "h-50 lg:h-80" : " lg:h-150 h-94")}>
+                      <div
+                        className={cn(
+                          "relative w-full   rounded-lg overflow-hidden",
+                          isVideo(post.mediaUrl[0])
+                            ? "h-50 lg:h-80"
+                            : " lg:h-115 h-94"
+                        )}
+                      >
                         {isVideo(post.mediaUrl[0]) ? (
                           <video
                             src={post.mediaUrl[0]}
@@ -499,12 +509,28 @@ export default function Home() {
                             className="w-full h-full "
                           ></video>
                         ) : (
-                          <Image
-                            src={post.mediaUrl[0]}
-                            alt="post media"
-                            fill
-                            className="object-cover object-center w-full h-max"
-                          />
+                          <Dialog>
+                            <DialogTrigger>
+                              <Image
+                                src={post.mediaUrl[0]}
+                                alt="post media"
+                                fill
+                                className="object-cover object-center w-full h-max"
+                              />
+                            </DialogTrigger>
+                            <DialogHeader>
+                              <DialogTitle>{post.content}</DialogTitle>
+                            </DialogHeader>
+                            <DialogContent className="w-full absolute top-80">
+                              <Image
+                                src={post.mediaUrl[0]}
+                                alt={`post media `}
+                                width={800}
+                                height={800}
+                                className="w-full h-full "
+                              />
+                            </DialogContent>
+                          </Dialog>
                         )}
                       </div>
                     )}
@@ -522,17 +548,33 @@ export default function Home() {
                         {post.mediaUrl.slice(0, 4).map((url, i) => (
                           <div
                             key={i}
-                            className="relative w-full h-55 lg:h-115  rounded-lg overflow-hidden"
+                            className="relative w-full h-55 lg:h-60  rounded-lg overflow-hidden"
                           >
                             {isVideo(url) ? (
                               <video src={url} controls />
                             ) : (
-                              <Image
-                                src={url}
-                                alt={`post media ${i}`}
-                                fill
-                                className="object-cover object-center"
-                              />
+                              <Dialog>
+                                <DialogTrigger>
+                                  <Image
+                                    src={url}
+                                    alt={`post media ${i}`}
+                                    fill
+                                    className="object-cover object-center"
+                                  />
+                                </DialogTrigger>
+                                <DialogHeader>
+                                  <DialogTitle>{post.content}</DialogTitle>
+                                </DialogHeader>
+                                <DialogContent className="w-full absolute top-80">
+                                  <Image
+                                    src={url}
+                                    alt={`post media ${i}`}
+                                    width={800}
+                                    height={800}
+                                    className="w-full h-full "
+                                  />
+                                </DialogContent>
+                              </Dialog>
                             )}
                           </div>
                         ))}
