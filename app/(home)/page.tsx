@@ -84,7 +84,7 @@ export default function Home() {
 
       try {
         const params = new URLSearchParams({
-          limit: "10",
+          limit: "20",
         });
         if (pageToken) {
           params.append("pageToken", pageToken);
@@ -101,7 +101,6 @@ export default function Home() {
         console.log(`user badge ${data.badge}`);
         if (append) {
           setPosts((prev) => {
-            // Deduplicate posts by id to prevent duplicate keys
             const existingIds = new Set(prev.map((p) => p.id));
             const newPosts = data.posts.filter(
               (p: PostWithUser) => !existingIds.has(p.id)
@@ -109,7 +108,6 @@ export default function Home() {
             return [...prev, ...newPosts];
           });
         } else {
-          // Also deduplicate initial load just in case
           const uniquePosts = data.posts.filter(
             (post: PostWithUser, index: number, self: PostWithUser[]) =>
               index === self.findIndex((p) => p.id === post.id)
