@@ -196,7 +196,6 @@ export default function Home() {
         }
       } catch (error) {
         console.error("Error tracking view:", error);
-        // Rollback on error
         setPosts((prev) =>
           prev.map((post) =>
             post.id === postId

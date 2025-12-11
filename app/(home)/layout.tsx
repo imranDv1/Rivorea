@@ -145,29 +145,29 @@ const mobileNavBar = [
 const fakeUsers = [
   {
     id: 1,
-    name: "John Doe",
+    name: "imran ",
     username: "john doe",
     avatar: "https://github.com/shadcn.png",
     verified: true,
   },
   {
     id: 2,
-    name: "Jane Doe",
-    username: "jane doe",
+    name: "Ahmed ",
+    username: "ahmed",
     avatar: "https://github.com/shadcn.png",
     verified: true,
   },
   {
     id: 3,
-    name: "Jim Doe",
-    username: "jim doe",
+    name: "hussien",
+    username: "hussien",
     avatar: "https://github.com/shadcn.png",
     verified: false,
   },
   {
     id: 4,
-    name: "Jill Doe",
-    username: "jill doe",
+    name: "Amir",
+    username: "amir",
     avatar: "https://github.com/shadcn.png",
     verified: true,
   },
@@ -187,8 +187,8 @@ const Layout = ({ children }: { children: ReactNode }) => {
     (state) => state.triggerRefresh
   );
   // Max file sizes
-  const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-  const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB 
+  const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB imran: update supabase storage to pro version.
 
   const MAX_MEDIA_FILES = 4;
 
@@ -202,7 +202,6 @@ const Layout = ({ children }: { children: ReactNode }) => {
 
   if (!user) {
     console.log("user not found");
-    // Optionally redirect to login or show a message if user is not found after loading
 
     window.location.reload()
 
