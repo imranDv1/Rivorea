@@ -81,7 +81,7 @@ const sections = [
     id: 3,
     name: "Search",
     icon: Search,
-    href: "/",
+    href: "/search",
   },
   {
     id: 4,
@@ -126,7 +126,7 @@ const mobileNavBar = [
     id: 3,
     name: "Search",
     icon: Search,
-    href: "/",
+    href: "/search",
   },
   {
     id: 4,
