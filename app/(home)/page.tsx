@@ -417,7 +417,7 @@ export default function Home() {
                           router.push(`/profile?userId=${post.user.id}`);
                         }}
                       >
-                        <span className=" flex items-center  gap-1 font-semibold truncate leading-tight max-w-[120px] sm:max-w-[170px]">
+                        <span className=" flex items-center  gap-1 font-semibold  leading-tight " >
                           {post.user.name}
                           {post.user.badge === "blue" ? (
                             <HiCheckBadge className="text-blue-500 lg:mt-1" />
