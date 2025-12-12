@@ -37,8 +37,8 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             {children}
-            <Analytics/>
             <SpeedInsights/>
+            <Analytics/>
             <Toaster className="bg-black border-2"/>
           </ThemeProvider>
       </body>
