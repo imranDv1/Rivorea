@@ -4,7 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next"
-
+import { SpeedInsights } from "@vercel/speed-insights/next"
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -38,6 +38,7 @@ export default function RootLayout({
           >
             {children}
             <Analytics/>
+            <SpeedInsights/>
             <Toaster className="bg-black border-2"/>
           </ThemeProvider>
       </body>
