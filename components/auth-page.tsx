@@ -58,7 +58,7 @@ export function AuthPage() {
         <div className="mx-auto space-y-4 sm:w-sm">
           <div className="flex items-center">
             <Image
-              src="/images/logo.png"
+              src="https://hcibiyuuxvbsxzywbccl.supabase.co/storage/v1/object/public/usersImage/Rivorea-01.png"
               alt="logo"
               width={100}
               height={100}
