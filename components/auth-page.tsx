@@ -22,7 +22,7 @@ export function AuthPage() {
         <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-background" />
         <div className="flex items-center">
           <Image
-            src="/images/logo.png"
+            src="https://hcibiyuuxvbsxzywbccl.supabase.co/storage/v1/object/public/usersImage/Rivorea-01.png"
             alt="logo"
             width={100}
             height={100}
